@@ -26,7 +26,39 @@ interface BattleStageProps {
   opponentAnimClass?: string;
   isScreenFlareActive?: boolean;
   onOpenWardrobe?: () => void;
+  backgroundUrl?: string;
 }
+
+/**
+ * Pixel-Art Oval Grass & Stone Stadium Pedestal SVG (Matches Battle Screen v4 Mockup)
+ */
+const GbaStadiumPedestalSVG: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 220 56"
+    preserveAspectRatio="none"
+    shapeRendering="crispEdges"
+    className={`pointer-events-none select-none ${className}`}
+  >
+    {/* Deep Ground Shadow */}
+    <ellipse cx="110" cy="36" rx="108" ry="18" fill="#040c10" />
+    {/* Dark Stone Platform Rim */}
+    <ellipse cx="110" cy="31" rx="106" ry="20" fill="#2c3c28" />
+    {/* Mid Stone Bevel */}
+    <ellipse cx="110" cy="28" rx="102" ry="18" fill="#586850" />
+    {/* Inner Sage-Stone Ring */}
+    <ellipse cx="110" cy="26" rx="96" ry="16" fill="#788868" />
+    {/* Emerald Turf Outer Ring */}
+    <ellipse cx="110" cy="25" rx="88" ry="14" fill="#487840" />
+    {/* Bright Sage Grass Center Turf */}
+    <ellipse cx="110" cy="24" rx="78" ry="12" fill="#689858" />
+    {/* Pixel Stone Rim Notches */}
+    <rect x="26" y="34" width="10" height="4" fill="#3c4c38" />
+    <rect x="64" y="40" width="14" height="4" fill="#3c4c38" />
+    <rect x="104" y="42" width="16" height="4" fill="#3c4c38" />
+    <rect x="148" y="40" width="14" height="4" fill="#3c4c38" />
+    <rect x="182" y="34" width="10" height="4" fill="#3c4c38" />
+  </svg>
+);
 
 const BattleStageComponent: React.FC<BattleStageProps> = ({
   playerMon,
@@ -41,18 +73,49 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
   playerAnimClass = '',
   opponentAnimClass = '',
   isScreenFlareActive = false,
-  onOpenWardrobe,
+  backgroundUrl,
 }) => {
   return (
-    <div className="relative z-10 flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col justify-between py-1 sm:py-3 overflow-hidden select-none">
+    <div className="relative z-10 flex-1 min-h-[156px] w-full overflow-hidden select-none">
+      {/* Traditional Ukiyo-e Woodblock Landscape Background Layer (Strictly behind platforms, trainers & Pokémon) */}
+      {backgroundUrl ? (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <img
+            src={backgroundUrl}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover object-center pixelated select-none"
+          />
+          {/* Subtle top/bottom vignette at stage edges so floating GBA UI plates pop cleanly */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(8,24,32,0.35) 0%, rgba(8,24,32,0.08) 22%, rgba(8,24,32,0.08) 78%, rgba(8,24,32,0.38) 100%)',
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          className="absolute inset-x-0 top-0 h-24 pointer-events-none opacity-25"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 25% 80%, transparent 18px, #183848 19px, #183848 21px, transparent 22px), radial-gradient(circle at 75% 60%, transparent 24px, #183848 25px, #183848 27px, transparent 28px)',
+            backgroundSize: '96px 48px',
+          }}
+        />
+      )}
+
       {/* Background Stage Aura Layer */}
       <BattleStageAuraLayer inventory={inventory} />
 
-      {/* Cinematic Screen Flare VFX (Manga Speedlines, Gold Holo Foil, Anamorphic Streak) */}
+      {/* Cinematic Screen Flare VFX */}
       <ScreenFlareVFX inventory={inventory} isActive={isScreenFlareActive} />
 
-      {/* Opponent Row (Top Right in Classic Pokémon Battle Perspective) */}
-      <div className="relative flex items-center justify-end gap-2 sm:gap-4 pr-2 sm:pr-8 pt-1">
+      {/* ===================================================================
+          QUADRANT 1 (Top-Left): Opponent Stat Plate
+         =================================================================== */}
+      <div className="absolute top-1.5 left-1 z-20">
         <BattleStatPlate
           pokemon={opponentMon}
           isOpponent={true}
@@ -60,91 +123,86 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
           totalCount={6}
           onOpenSummary={onOpenSummary}
         />
+      </div>
 
-        {/* Opponent Sprite Platform & Champion Cynthia */}
-        <div className="relative flex items-end gap-1.5 shrink-0">
-          {/* Opponent Pokémon & Platform */}
-          <div
-            onClick={() => onOpenSummary(opponentMon, true)}
-            title={`Click to inspect Champion Cynthia's ${opponentMon.species} [ 鑑 ]`}
-            className="relative flex flex-col items-center shrink-0 cursor-pointer group active:scale-95 transition-transform"
-          >
-            {/* Authentic Opponent Battle Platform Pedestal */}
-            <div className="absolute -bottom-2 sm:-bottom-3 w-28 xs:w-36 sm:w-48 h-10 sm:h-14 pkmn-platform-opponent pointer-events-none -z-10" />
+      {/* ===================================================================
+          QUADRANT 2 (Top-Right): Opponent Pedestal + Opponent Pokémon + Champion
+         =================================================================== */}
+      <div className="absolute top-0.5 right-1 flex items-end justify-center pr-1.5 pb-2 min-w-[162px] xs:min-w-[175px] z-10">
+        {/* Oval Grass & Stone Pedestal */}
+        <GbaStadiumPedestalSVG className="absolute bottom-0 right-0 w-[166px] xs:w-[180px] sm:w-[192px] h-[38px] sm:h-[42px] z-0" />
 
-            <div className={`${opponentAnimClass}`}>
-              <img
-                src={opponentMon.spriteFront}
-                alt={opponentMon.species}
-                loading="eager"
-                decoding="async"
-                className="w-18 h-18 xs:w-24 xs:h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 max-h-[17vh] object-contain filter drop-shadow-2xl group-hover:scale-105 transition-transform select-none relative z-10"
-              />
-            </div>
+        {/* Opponent Pokémon Front Sprite */}
+        <div
+          onClick={() => onOpenSummary(opponentMon, true)}
+          title={`Inspect ${opponentMon.species}`}
+          className="relative z-10 flex flex-col items-center cursor-pointer active:scale-95 transition-transform mr-1"
+        >
+          {opponentMon.substituteHp && opponentMon.substituteHp > 0 ? (
+            <span className="absolute -top-2.5 px-1 py-[1px] bg-[#306850] border border-[#e0f8d0] font-pixel text-[6px] text-[#e0f8d0] z-20">
+              SUB {opponentMon.substituteHp}
+            </span>
+          ) : null}
+          <div className={opponentAnimClass}>
+            <img
+              src={opponentMon.spriteFront}
+              alt={opponentMon.species}
+              loading="eager"
+              decoding="async"
+              className="w-18 h-18 xs:w-20 xs:h-20 sm:w-24 sm:h-24 object-contain pixelated drop-shadow-[2px_3px_0_rgba(8,24,32,0.85)] select-none"
+            />
           </div>
+        </div>
 
-          {/* Champion Cynthia Active Trainer Sprite on Opponent Platform */}
-          <div className="flex mb-1 shrink-0 scale-90 xs:scale-100 origin-bottom select-none">
-            <TrainerBattleSprite isOpponent={true} size="sm" />
+        {/* Champion Sprite Standing on Right Edge of Opponent Pedestal */}
+        <div className="relative z-10 mb-1 ml-0.5 shrink-0">
+          <TrainerBattleSprite isOpponent={true} size="md" />
+        </div>
+      </div>
+
+      {/* ===================================================================
+          QUADRANT 3 (Bottom-Left): Player Pedestal & Back Sprite
+         =================================================================== */}
+      <div className="absolute bottom-0 left-1.5 flex items-end justify-center pl-2 pb-1 min-w-[155px] xs:min-w-[168px] z-10">
+        {/* Foreground Oval Grass & Stone Pedestal */}
+        <GbaStadiumPedestalSVG className="absolute -bottom-1.5 left-0 w-[162px] xs:w-[176px] sm:w-[190px] h-[38px] sm:h-[42px] z-0" />
+
+        {/* Pokéball Entrance VFX */}
+        <PokeballEntranceVFX inventory={inventory} triggerKey={playerMon.species} />
+
+        {/* Player Pokémon Cosmetic Layer */}
+        <PokemonCosmeticLayer
+          pokemon={playerMon}
+          isOpponent={false}
+          inventory={inventory}
+        />
+
+        <div
+          onClick={() => onOpenSummary(playerMon, false)}
+          title={`Inspect ${playerMon.species}`}
+          className="relative z-10 flex flex-col items-center cursor-pointer active:scale-95 transition-transform"
+        >
+          {playerMon.substituteHp && playerMon.substituteHp > 0 ? (
+            <span className="absolute -top-2.5 px-1 py-[1px] bg-[#306850] border border-[#e0f8d0] font-pixel text-[6px] text-[#e0f8d0] z-20">
+              SUB {playerMon.substituteHp}
+            </span>
+          ) : null}
+          <div className={playerAnimClass}>
+            <img
+              src={playerMon.spriteBack}
+              alt={playerMon.species}
+              loading="eager"
+              decoding="async"
+              className="w-20 h-20 xs:w-22 xs:h-22 sm:w-26 sm:h-26 object-contain pixelated drop-shadow-[2px_3px_0_rgba(8,24,32,0.85)] select-none -mb-1"
+            />
           </div>
         </div>
       </div>
 
-      {/* Player Active Pokémon Row (Bottom Left in Classic Pokémon Battle Perspective) */}
-      <div className="relative flex items-center justify-start gap-2 sm:gap-4 pl-2 sm:pl-8 pb-1">
-        {/* Player Active Trainer & Pokémon Platform */}
-        <div className="relative flex items-end gap-1.5 shrink-0">
-          {/* Player Active Customized Trainer (Commanding / Cheering Stance) */}
-          <div className="flex mb-1 z-20 shrink-0 scale-90 xs:scale-100 origin-bottom">
-            <TrainerBattleSprite
-              isOpponent={false}
-              inventory={inventory}
-              isCommanding={isAwaitingPlayerInput}
-              isCheering={opponentAnimClass === 'anim-faint-sink' || Boolean(floatingDamage?.isCrit && floatingDamage?.side === 'opponent')}
-              size="sm"
-              onClick={onOpenWardrobe}
-            />
-          </div>
-
-          {/* Player Pokémon & Grass Stadium Turf Platform */}
-          <div
-            onClick={() => onOpenSummary(playerMon, false)}
-            title={`Click to inspect your ${playerMon.species} [ 鑑 ]`}
-            className="relative flex flex-col items-center shrink-0 cursor-pointer group active:scale-95 transition-transform"
-          >
-            {/* Authentic Player Battle Platform (Iconic Green Grass Pedestal) */}
-            <div className="absolute -bottom-3 sm:-bottom-4 w-32 xs:w-44 sm:w-56 h-12 sm:h-16 pkmn-platform-grass pointer-events-none -z-10" />
-
-            {/* Retro Turn Indicator Badge */}
-            {isAwaitingPlayerInput && (
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-red-600 text-white font-pixel text-[8px] sm:text-[9px] shadow-lg shadow-red-600/50 flex items-center gap-1 whitespace-nowrap z-30 border border-red-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-ping" />
-                <span>YOUR TURN</span>
-              </div>
-            )}
-
-            {/* Pokéball Entrance Animation (Triggers on initial summon or switch) */}
-            <PokeballEntranceVFX inventory={inventory} triggerKey={playerMon.species} />
-
-            {/* Stadium Turf Field Aura & Held Item Display */}
-            <PokemonCosmeticLayer
-              pokemon={playerMon}
-              isOpponent={false}
-              inventory={inventory}
-            />
-
-            <div className={`${playerAnimClass}`}>
-              <img
-                src={playerMon.spriteBack}
-                alt={playerMon.species}
-                loading="eager"
-                decoding="async"
-                className="w-22 h-22 xs:w-28 xs:h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 max-h-[19vh] object-contain filter drop-shadow-2xl group-hover:scale-105 transition-transform select-none relative z-10"
-              />
-            </div>
-          </div>
-        </div>
-
+      {/* ===================================================================
+          QUADRANT 4 (Bottom-Right): Player Stat Plate
+         =================================================================== */}
+      <div className="absolute bottom-0.5 right-1 z-20">
         <BattleStatPlate
           pokemon={playerMon}
           isOpponent={false}
@@ -155,7 +213,7 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
         />
       </div>
 
-      {/* Pokémon Showdown Elemental Move VFX & Floating Damage Numbers */}
+      {/* Pokémon Move VFX & Auto-Dismissing Damage Numbers */}
       <MoveVFX vfx={activeVFX} floatingDamage={floatingDamage} />
     </div>
   );

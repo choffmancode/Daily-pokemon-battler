@@ -152,28 +152,28 @@ export const GachaPackModal: React.FC<GachaPackModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-[#081820]/95 gba-outer-wave gba-scanlines overflow-y-auto select-none"
       role="dialog"
       aria-modal="true"
+      aria-label="Pokémon Booster Packs"
     >
-      <div className="w-full max-w-4xl p-4 sm:p-6 rounded-2xl pkmn-frame-dark shadow-2xl relative my-auto">
+      <div className="w-full max-w-4xl p-3.5 sm:p-5 gba-frame-emerald shadow-2xl relative my-auto text-[#e0f8d0]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded pkmn-btn-gold flex items-center justify-center text-slate-950 shadow-md">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white font-pixel">
-                POKÉMON BOOSTER PACKS
+        <div className="flex items-center justify-between pb-2.5 border-b-2 border-[#306850] mb-2 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="gba-hanko-seal text-[10px] px-1.5 py-0.5 font-bold shrink-0">包</span>
+            <div className="min-w-0">
+              <h2 className="gba-title-text text-[13px] sm:text-[15px] font-bold text-[#e0f8d0] tracking-wider uppercase whitespace-nowrap">
+                ◇ BOOSTER PACKS ◇
               </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-pixel mt-0.5">
-                Collect & Equip Rare TCG Gear & Regalia
+              <p className="font-pixel text-[6.5px] sm:text-[7.5px] text-[#88c070] mt-0.5 uppercase truncate">
+                PACKS: {inventory.availablePacks} • STARDUST: {inventory.stardust}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               haptics.tap();
@@ -181,9 +181,9 @@ export const GachaPackModal: React.FC<GachaPackModalProps> = ({
               setPackStage('idle');
             }}
             aria-label="Close Packs Modal"
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer"
+            className="gba-select-btn px-2.5 py-1 font-pixel text-[8px] cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            [BACK]
           </button>
         </div>
 
@@ -204,8 +204,8 @@ export const GachaPackModal: React.FC<GachaPackModalProps> = ({
                 onResetCooldown={handleAdminResetCooldown}
                 onOpenAnytime={() => handleOpenPack(true)}
               />
-              <p className="text-xs text-slate-400 mt-2 text-center">
-                Daily free packs refresh every 24h. Use Admin Controls to open booster packs whenever you want!
+              <p className="gba-title-text text-[9.5px] text-[#88c070] mt-2 text-center">
+                Daily free packs refresh every 24h. Use Admin Controls to open booster packs anytime!
               </p>
             </div>
           </div>
@@ -226,3 +226,4 @@ export const GachaPackModal: React.FC<GachaPackModalProps> = ({
     </div>
   );
 };
+

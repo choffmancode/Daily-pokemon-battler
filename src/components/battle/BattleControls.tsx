@@ -5,11 +5,10 @@
 
 import React, { useMemo } from 'react';
 import { Pokemon, Move } from '../../game/types';
-import { TYPE_COLORS } from '../../game/data/typeChart';
+import { GBA_TYPE_COLORS, TYPE_ABBR, getSpriteUrl } from '../../game/data/typeChart';
 import { calculateTypeEffectiveness } from '../../game/battleEngine';
 import { soundFX } from '../AudioEngine';
 import { haptics } from '../../audio/useHaptics';
-import { Swords, RefreshCw, Zap } from 'lucide-react';
 
 interface BattleControlsProps {
   playerMon: Pokemon;
@@ -26,6 +25,12 @@ interface BattleControlsProps {
   onOpenSummary: (mon: Pokemon, isOpponent: boolean) => void;
 }
 
+interface EffectivenessTabMeta {
+  label: string;
+  bg: string;
+  text: string;
+}
+
 const BattleControlsComponent: React.FC<BattleControlsProps> = ({
   playerMon,
   opponentMon,
@@ -40,204 +45,331 @@ const BattleControlsComponent: React.FC<BattleControlsProps> = ({
   onSwitchPokemon,
   onOpenSummary,
 }) => {
-  const effectivenessBadges = useMemo(() => {
-    const map = new Map<string, { label: string; color: string }>();
+  const effectivenessTabs = useMemo(() => {
+    const map = new Map<string, EffectivenessTabMeta>();
     for (const move of playerMon.moves) {
       if (move.category === 'Status') {
-        map.set(move.id, { label: 'STATUS', color: 'bg-slate-700 text-slate-300' });
+        map.set(move.id, { label: 'STATUS', bg: '#507068', text: '#e0f8d0' });
       } else {
         const mult = calculateTypeEffectiveness(move.type, opponentMon.types);
-        if (mult > 1) {
-          map.set(move.id, { label: 'SUPER EFFECTIVE!', color: 'bg-emerald-600 text-white font-bold' });
+        if (mult >= 4) {
+          map.set(move.id, { label: '4x SUPER', bg: '#a83838', text: '#e0f8d0' });
+        } else if (mult > 1) {
+          map.set(move.id, { label: '2x SUPER', bg: '#a83838', text: '#e0f8d0' });
         } else if (mult === 0) {
-          map.set(move.id, { label: 'NO EFFECT', color: 'bg-slate-800 text-slate-500' });
+          map.set(move.id, { label: 'NO EFFECT', bg: '#58646c', text: '#e0f8d0' });
         } else if (mult < 1) {
-          map.set(move.id, { label: 'NOT VERY EFFECTIVE', color: 'bg-amber-600/90 text-white' });
+          map.set(move.id, { label: '0.5x WEAK', bg: '#8c7420', text: '#e0f8d0' });
         } else {
-          map.set(move.id, { label: 'NORMAL', color: 'bg-slate-700/80 text-slate-300' });
+          map.set(move.id, { label: '1x HIT', bg: '#306850', text: '#e0f8d0' });
         }
       }
     }
     return map;
   }, [playerMon.moves, opponentMon.types]);
 
-  const getEffectivenessBadge = (move: Move) =>
-    effectivenessBadges.get(move.id) || { label: 'NORMAL', color: 'bg-slate-700/80 text-slate-300' };
+  const getEffectivenessTab = (move: Move): EffectivenessTabMeta =>
+    effectivenessTabs.get(move.id) || { label: '1x HIT', bg: '#306850', text: '#e0f8d0' };
+
+  const aliveCount = playerTeam.filter((p) => !p.fainted && p.currentHp > 0).length;
 
   return (
-    <div className="relative z-20 w-full max-w-4xl mx-auto shrink-0">
-      <div
-        className={`rounded-xl pkmn-frame-dark p-2 sm:p-3 transition-all ${
-          isAwaitingPlayerInput
-            ? 'ring-2 ring-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
-            : 'border-slate-800'
-        }`}
-      >
-        {/* Gen 1-3 Dialogue & Mode Selection Ribbon */}
-        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-700/60">
-          <div className="flex items-center gap-2">
-            {/* FIGHT Mode Tab (FireRed Style) */}
-            <button
-              onClick={() => {
-                soundFX.playSelect();
-                haptics.tap();
-                onSelectSubMenu('moves');
-              }}
-              className={`pkmn-btn px-3 py-1.5 text-[10px] sm:text-xs flex items-center gap-1.5 min-h-[38px] ${
-                selectedSubMenu === 'moves'
-                  ? 'pkmn-btn-red ring-2 ring-red-300'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-              }`}
-            >
-              <Swords className="w-3.5 h-3.5" />
-              <span>FIGHT [A]</span>
-              {isAwaitingPlayerInput && selectedSubMenu === 'moves' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-ping" />
-              )}
-            </button>
+    <div className="relative z-20 w-full shrink-0 select-none">
+      {/* ===================================================================
+          SUB-MENU 1: 2x2 DARK-GREEN CHAMFERED GBA MOVE GRID (Matches v4 Mockup)
+         =================================================================== */}
+      {selectedSubMenu === 'moves' ? (
+        <div className="grid grid-cols-2 gap-1.5">
+          {playerMon.moves.slice(0, 4).map((move, idx) => {
+            const eff = getEffectivenessTab(move);
+            const typeCol = GBA_TYPE_COLORS[move.type] || GBA_TYPE_COLORS.Normal;
+            const typeCode = TYPE_ABBR[move.type] || 'NORM';
+            const isOutOfPP = move.pp <= 0;
+            const disabled = isTurnProcessing || isOutOfPP || !isAwaitingPlayerInput;
 
-            {/* POKÉMON Switch Tab (Emerald / Sapphire Style) */}
-            <button
-              onClick={() => {
-                soundFX.playSelect();
-                haptics.tap();
-                onSelectSubMenu('switch');
-              }}
-              className={`pkmn-btn px-3 py-1.5 text-[10px] sm:text-xs flex items-center gap-1.5 min-h-[38px] ${
-                selectedSubMenu === 'switch'
-                  ? 'pkmn-btn-blue ring-2 ring-blue-300'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-              } ${playerNeedsSwitch ? 'ring-2 ring-yellow-400 animate-pulse' : ''}`}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>
-                POKÉMON ({playerTeam.filter((p) => !p.fainted).length}/6)
-              </span>
-              {playerNeedsSwitch && (
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-ping" />
-              )}
-            </button>
-          </div>
-
-          <div className="font-pixel text-[8px] sm:text-[9px] text-slate-400 hidden sm:block">
-            PRESS [1] [2] [3] [4]
-          </div>
-        </div>
-
-        {/* Sub-menu 1: Moves (Classic 2x2 Pokémon Move Grid) */}
-        {selectedSubMenu === 'moves' ? (
-          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-            {playerMon.moves.map((move, idx) => {
-              const eff = getEffectivenessBadge(move);
-              const typeColor = TYPE_COLORS[move.type] || { bg: 'bg-stone-600', text: 'text-white' };
-              const isOutOfPP = move.pp <= 0;
-
-              return (
-                <button
-                  key={move.id}
-                  onClick={() => {
-                    haptics.tap();
-                    onSelectMove(idx);
-                  }}
-                  disabled={isTurnProcessing || isOutOfPP}
-                  className={`p-2 sm:p-2.5 rounded-lg border text-left transition-all relative overflow-hidden flex flex-col justify-between min-h-[50px] sm:min-h-[60px] ${
-                    isOutOfPP
-                      ? 'opacity-40 bg-slate-950 border-slate-900 cursor-not-allowed'
-                      : isAwaitingPlayerInput
-                      ? 'bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-750 hover:to-slate-850 border-slate-600 hover:border-amber-400 active:scale-[0.98] shadow-md cursor-pointer'
-                      : 'bg-slate-950/70 border-slate-800 cursor-not-allowed'
-                  }`}
+            return (
+              <button
+                key={move.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  soundFX.playSelect();
+                  haptics.tap();
+                  onSelectMove(idx);
+                }}
+                className={`relative h-[68px] sm:h-[74px] w-full flex flex-col justify-between overflow-hidden transition-transform ${
+                  disabled
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'cursor-pointer active:translate-y-[1px] group'
+                }`}
+              >
+                {/* Chamfered Double-Lined Dark-Green Move Box SVG */}
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 190 74"
+                  preserveAspectRatio="none"
+                  shapeRendering="crispEdges"
                 >
-                  <div className="flex items-center justify-between mb-1 gap-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-[8px] xs:text-[9px] text-amber-400 shrink-0">
-                        {idx + 1}
-                      </span>
-                      <span className="font-pixel text-[9px] xs:text-[10px] sm:text-xs text-white truncate uppercase tracking-tight">
-                        {move.name}
-                      </span>
-                    </div>
+                  {/* Outer Dark Trim */}
+                  <polygon
+                    points="6,0 184,0 190,6 190,68 184,74 6,74 0,68 0,6"
+                    fill="#081820"
+                  />
+                  {/* Cream Outer Chamfered Border */}
+                  <polygon
+                    points="7,2 183,2 188,7 188,67 183,72 7,72 2,67 2,7"
+                    fill="#d8ecd0"
+                  />
+                  {/* Inner Dark Border */}
+                  <polygon
+                    points="9,4 181,4 186,9 186,65 181,70 9,70 4,65 4,9"
+                    fill="#081820"
+                  />
+                  {/* Consistent Dark-Green Interior Fill (#1c3c2c) */}
+                  <polygon
+                    points="10,6 180,6 184,10 184,64 180,68 10,68 6,64 6,10"
+                    fill="#1c3c2c"
+                  />
+                  {/* Inner Sage Frame Line */}
+                  <polygon
+                    points="12,8 178,8 182,12 182,52 178,56 12,56 8,52 8,12"
+                    fill="none"
+                    stroke="#386850"
+                    strokeWidth="1.5"
+                  />
+                  {/* Top Corner Diagonal Ticks */}
+                  <polyline points="11,14 15,10" stroke="#88c070" strokeWidth="2" />
+                  <polyline points="179,14 175,10" stroke="#88c070" strokeWidth="2" />
+                </svg>
 
-                    {/* Move Type Badge */}
-                    <span
-                      className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase shrink-0 ${typeColor.bg} ${typeColor.text}`}
-                    >
-                      {move.type}
+                {/* Top & Middle Content: Move Name + PP */}
+                <div className="relative z-10 w-full flex-1 min-h-0 flex flex-col justify-center px-3 pt-1.5 pb-0.5">
+                  {/* Centered Move Name */}
+                  <div className="w-full text-center truncate leading-none">
+                    <span className="gba-title-text text-[11.5px] xs:text-[12.5px] sm:text-[13.5px] font-bold text-[#e0f8d0] uppercase tracking-tight drop-shadow-[1px_1px_0_#081820]">
+                      {move.name}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[8px] xs:text-[9px] font-pixel text-slate-400">
+                  {/* PP Row */}
+                  <div className="w-full flex items-center justify-between px-1.5 mt-1 leading-none">
+                    <span className="gba-title-text text-[10px] xs:text-[11px] font-bold text-[#e0f8d0] drop-shadow-[1px_1px_0_#081820]">
+                      PP
+                    </span>
                     <span
-                      className={`px-1 py-0.2 rounded text-[7px] xs:text-[8px] ${eff.color}`}
+                      className={`gba-title-text text-[10px] xs:text-[11px] font-bold tabular-nums drop-shadow-[1px_1px_0_#081820] ${
+                        isOutOfPP ? 'text-[#e85050]' : 'text-[#e0f8d0]'
+                      }`}
                     >
+                      {move.pp}/{move.maxPp}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Symmetrical Angled Tabs (Full 18px Height Matching v4 Mockup) */}
+                <div className="relative z-20 w-full h-[18px] shrink-0 flex items-stretch justify-between px-[5px] pb-[3px]">
+                  {/* Bottom-Left Angled Type Plate Tab */}
+                  <div
+                    className="w-[46%] h-full flex items-center justify-center pr-2 border-t border-r border-[#081820]"
+                    style={{
+                      backgroundColor: typeCol.bg,
+                      color: typeCol.text,
+                      clipPath: 'polygon(0 0, 82% 0, 100% 100%, 0 100%)',
+                    }}
+                  >
+                    <span className="font-pixel text-[8px] font-bold uppercase leading-none tracking-tighter drop-shadow-[1px_1px_0_rgba(0,0,0,0.35)]">
+                      {typeCode}
+                    </span>
+                  </div>
+
+                  {/* Bottom-Right Angled Effectiveness Plate Tab */}
+                  <div
+                    className="w-[52%] h-full flex items-center justify-center pl-2 border-t border-l border-[#081820]"
+                    style={{
+                      backgroundColor: eff.bg,
+                      color: eff.text,
+                      clipPath: 'polygon(16% 0, 100% 0, 100% 100%, 0 100%)',
+                    }}
+                  >
+                    <span className="font-pixel text-[7.5px] font-bold uppercase leading-none tracking-tighter whitespace-nowrap drop-shadow-[1px_1px_0_rgba(0,0,0,0.45)]">
                       {eff.label}
                     </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        /* ===================================================================
+           SUB-MENU 2: 2x3 DARK-GREEN GBA PARTY SWITCH GRID
+           =================================================================== */
+        <div className="grid grid-cols-2 gap-1.5 h-[142px] sm:h-[154px]">
+          {playerTeam.slice(0, 6).map((mon, idx) => {
+            const isCurrent = idx === playerActiveIndex;
+            const isFainted = mon.fainted || mon.currentHp <= 0;
+            const hpPct = Math.max(0, Math.min(100, Math.round((mon.currentHp / mon.maxHp) * 100)));
 
-                    <span className={`font-bold ${isOutOfPP ? 'text-red-400' : 'text-slate-200'}`}>
-                      PP {move.pp}/{move.maxPp}
+            return (
+              <button
+                key={mon.id}
+                type="button"
+                disabled={isCurrent || isFainted || isTurnProcessing}
+                onClick={() => {
+                  soundFX.playSelect();
+                  haptics.tap();
+                  onSwitchPokemon(idx);
+                }}
+                className={`relative px-2 py-0.5 border-2 flex items-center gap-1.5 text-left transition-transform ${
+                  isCurrent
+                    ? 'bg-[#285038] border-[#e0f8d0] cursor-default'
+                    : isFainted
+                    ? 'bg-[#102018] border-[#304838] opacity-50 cursor-not-allowed'
+                    : 'bg-[#1c3c2c] border-[#88c070] hover:border-[#e0f8d0] cursor-pointer active:translate-y-[1px]'
+                }`}
+              >
+                <img
+                  src={getSpriteUrl(mon.nationalDex, false)}
+                  alt={mon.species}
+                  className="w-8 h-8 object-contain pixelated shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-pixel text-[8px] font-bold text-[#e0f8d0] truncate uppercase">
+                      {mon.species}
                     </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          /* Sub-menu 2: Pokémon Switch Squad */
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
-            {playerTeam.map((mon, idx) => {
-              const isCurrent = idx === playerActiveIndex;
-              const isFainted = mon.fainted || mon.currentHp <= 0;
-              const hpPct = Math.round((mon.currentHp / mon.maxHp) * 100);
-
-              return (
-                <button
-                  key={mon.id}
-                  disabled={isCurrent || isFainted || isTurnProcessing}
-                  onClick={() => {
-                    soundFX.playSelect();
-                    haptics.tap();
-                    onSwitchPokemon(idx);
-                  }}
-                  className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all min-h-[48px] ${
-                    isCurrent
-                      ? 'bg-blue-950/60 border-blue-500/80 ring-1 ring-blue-400 cursor-default'
-                      : isFainted
-                      ? 'opacity-40 bg-slate-950 border-slate-900 cursor-not-allowed grayscale'
-                      : 'bg-slate-900 hover:bg-slate-800 border-slate-700 hover:border-emerald-400 cursor-pointer active:scale-95'
-                  }`}
-                >
-                  <img
-                    src={mon.spriteFront}
-                    alt={mon.species}
-                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-pixel text-[9px] sm:text-[10px] text-white truncate uppercase">
-                        {mon.species}
+                    {isCurrent && (
+                      <span className="font-pixel text-[6px] px-1 bg-[#88c070] text-[#081820] font-bold">
+                        LEAD
                       </span>
-                      {isCurrent && (
-                        <span className="text-[7px] font-pixel text-blue-300">OUT</span>
-                      )}
-                      {isFainted && (
-                        <span className="text-[7px] font-pixel text-red-400">FAINT</span>
-                      )}
-                    </div>
-                    {/* Mini HP bar */}
-                    <div className="w-full bg-slate-950 rounded-full h-1.5 mt-1 overflow-hidden border border-slate-800">
-                      <div
-                        className={`h-full ${
-                          hpPct > 50 ? 'bg-emerald-500' : hpPct > 20 ? 'bg-yellow-400' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${hpPct}%` }}
-                      />
-                    </div>
+                    )}
+                    {isFainted && (
+                      <span className="font-pixel text-[6px] px-1 bg-[#a83838] text-[#e0f8d0] font-bold">
+                        KO
+                      </span>
+                    )}
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                  <div className="w-full h-1.5 bg-[#081820] border border-[#e0f0c8] mt-0.5 overflow-hidden">
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${hpPct}%`,
+                        backgroundColor:
+                          hpPct > 50 ? '#58c860' : hpPct > 20 ? '#e8b828' : '#c83838',
+                      }}
+                    />
+                  </div>
+                  <div className="font-pixel text-[6.5px] text-[#88c070] mt-0.5 tabular-nums">
+                    {Math.max(0, mon.currentHp)}/{mon.maxHp}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ===================================================================
+          BOTTOM MODE DOCK: [FIGHT] | [PARTY X/6] | [SUMMARY] (Matches v4 Mockup)
+         =================================================================== */}
+      <div className="grid grid-cols-3 gap-1.5 mt-1">
+        {/* 1. [FIGHT] */}
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playSelect();
+            haptics.tap();
+            onSelectSubMenu('moves');
+          }}
+          className="relative h-[34px] sm:h-[38px] flex items-center justify-center cursor-pointer active:translate-y-[1px]"
+        >
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 124 38"
+            preserveAspectRatio="none"
+            shapeRendering="crispEdges"
+          >
+            <polygon points="5,0 119,0 124,5 124,33 119,38 5,38 0,33 0,5" fill="#081820" />
+            <polygon
+              points="6,2 118,2 122,6 122,32 118,36 6,36 2,32 2,6"
+              fill={selectedSubMenu === 'moves' ? '#e0f8d0' : '#88c070'}
+            />
+            <polygon points="8,4 116,4 120,8 120,30 116,34 8,34 4,30 4,8" fill="#081820" />
+            <polygon
+              points="9,5 115,5 119,9 119,29 115,33 9,33 5,29 5,9"
+              fill={selectedSubMenu === 'moves' ? '#244c38' : '#183424'}
+            />
+          </svg>
+          <span className="relative z-10 gba-title-text text-[11px] font-bold text-[#e0f8d0] drop-shadow-[1px_1px_0_#081820]">
+            [FIGHT]
+          </span>
+        </button>
+
+        {/* 2. [PARTY X/6] */}
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playSelect();
+            haptics.tap();
+            onSelectSubMenu(selectedSubMenu === 'switch' ? 'moves' : 'switch');
+          }}
+          className={`relative h-[34px] sm:h-[38px] flex items-center justify-center cursor-pointer active:translate-y-[1px] ${
+            playerNeedsSwitch ? 'animate-pulse' : ''
+          }`}
+        >
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 124 38"
+            preserveAspectRatio="none"
+            shapeRendering="crispEdges"
+          >
+            <polygon points="5,0 119,0 124,5 124,33 119,38 5,38 0,33 0,5" fill="#081820" />
+            <polygon
+              points="6,2 118,2 122,6 122,32 118,36 6,36 2,32 2,6"
+              fill={
+                playerNeedsSwitch
+                  ? '#a83838'
+                  : selectedSubMenu === 'switch'
+                  ? '#e0f8d0'
+                  : '#88c070'
+              }
+            />
+            <polygon points="8,4 116,4 120,8 120,30 116,34 8,34 4,30 4,8" fill="#081820" />
+            <polygon
+              points="9,5 115,5 119,9 119,29 115,33 9,33 5,29 5,9"
+              fill={selectedSubMenu === 'switch' ? '#244c38' : '#183424'}
+            />
+          </svg>
+          <span className="relative z-10 gba-title-text text-[10.5px] font-bold text-[#e0f8d0] whitespace-nowrap drop-shadow-[1px_1px_0_#081820]">
+            [PARTY {aliveCount}/6]
+          </span>
+        </button>
+
+        {/* 3. [SUMMARY] */}
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playSelect();
+            haptics.tap();
+            onOpenSummary(playerMon, false);
+          }}
+          className="relative h-[34px] sm:h-[38px] flex items-center justify-center cursor-pointer active:translate-y-[1px]"
+        >
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 124 38"
+            preserveAspectRatio="none"
+            shapeRendering="crispEdges"
+          >
+            <polygon points="5,0 119,0 124,5 124,33 119,38 5,38 0,33 0,5" fill="#081820" />
+            <polygon points="6,2 118,2 122,6 122,32 118,36 6,36 2,32 2,6" fill="#88c070" />
+            <polygon points="8,4 116,4 120,8 120,30 116,34 8,34 4,30 4,8" fill="#081820" />
+            <polygon points="9,5 115,5 119,9 119,29 115,33 9,33 5,29 5,9" fill="#183424" />
+          </svg>
+          <span className="relative z-10 gba-title-text text-[10.5px] font-bold text-[#e0f8d0] whitespace-nowrap drop-shadow-[1px_1px_0_#081820]">
+            [SUMMARY]
+          </span>
+        </button>
       </div>
     </div>
   );

@@ -4,19 +4,16 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Package, Shirt, Network, Flame, Volume2, VolumeX, ArrowRight, ChevronLeft, ChevronRight, Play, Palette } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { soundFX } from './AudioEngine';
 import { TeamPreset, UserCosmeticInventory } from '../game/types';
 import { getDailyPackCooldown } from '../game/gachaEngine';
-import { COZY_BACKGROUND_SCENES } from '../game/constants';
-import { getOfficialArtworkUrl } from '../game/data/typeChart';
-import { MiniTrainerSVG, getTrainerBase } from '../game/data/trainerRegistry';
 
 interface TitleScreenProps {
   onStartBattle: () => void;
   onOpenGacha: () => void;
   onOpenWardrobe: () => void;
-  onOpenTeamSelect: () => void;
+  onOpenTeamSelect: (initialStep?: 'teams' | 'lead') => void;
   selectedTeam: TeamPreset;
   inventory?: UserCosmeticInventory;
   availablePacks: number;
@@ -25,28 +22,195 @@ interface TitleScreenProps {
   onToggleMute: () => void;
 }
 
+/**
+ * Chamfered Double-Lined GBA Banner Frame SVG (Matches Reference Screen 1 Top Banner)
+ */
+const ChamferedBannerFrameSVG: React.FC = () => (
+  <svg
+    viewBox="0 0 360 68"
+    preserveAspectRatio="none"
+    className="absolute inset-0 w-full h-full pointer-events-none"
+    style={{ shapeRendering: 'crispEdges' }}
+  >
+    {/* Outer Dark Trim */}
+    <polygon
+      points="12,0 348,0 360,12 360,56 348,68 12,68 0,56 0,12"
+      fill="#081820"
+      stroke="#306850"
+      strokeWidth="2"
+    />
+    {/* Main Cream Outer Chamfered Border */}
+    <polygon
+      points="13,3 347,3 357,13 357,55 347,65 13,65 3,55 3,13"
+      fill="#081820"
+      stroke="#e0f8d0"
+      strokeWidth="3"
+    />
+    {/* Inner Sage Chamfered Rim */}
+    <polygon
+      points="16,8 344,8 352,16 352,52 344,60 16,60 8,52 8,16"
+      fill="#081820"
+      stroke="#306850"
+      strokeWidth="2"
+    />
+    {/* Corner Accent Ticks */}
+    <polyline points="12,18 18,12" stroke="#88c070" strokeWidth="2" />
+    <polyline points="348,18 342,12" stroke="#88c070" strokeWidth="2" />
+    <polyline points="12,50 18,56" stroke="#88c070" strokeWidth="2" />
+    <polyline points="348,50 342,56" stroke="#88c070" strokeWidth="2" />
+    {/* Symmetrical Left & Right Decorative Underline Bars (Reference Screen 1) */}
+    <rect x="44" y="51" width="76" height="2" fill="#306850" />
+    <rect x="44" y="55" width="76" height="2" fill="#306850" />
+    <rect x="240" y="51" width="76" height="2" fill="#306850" />
+    <rect x="240" y="55" width="76" height="2" fill="#306850" />
+  </svg>
+);
+
+/**
+ * Chamfered Double-Lined GBA Menu Button Frame SVG (Matches Reference Screen 1 Buttons)
+ */
+const ChamferedButtonFrameSVG: React.FC = () => (
+  <svg
+    viewBox="0 0 360 62"
+    preserveAspectRatio="none"
+    className="absolute inset-0 w-full h-full pointer-events-none"
+    style={{ shapeRendering: 'crispEdges' }}
+  >
+    {/* Outer Dark Trim */}
+    <polygon
+      points="8,0 352,0 360,8 360,54 352,62 8,62 0,54 0,8"
+      fill="#183828"
+      stroke="#306850"
+      strokeWidth="2"
+    />
+    {/* Cream Outer Chamfered Border */}
+    <polygon
+      points="9,2.5 351,2.5 357.5,9 357.5,53 351,59.5 9,59.5 2.5,53 2.5,9"
+      fill="#183828"
+      stroke="#e0f8d0"
+      strokeWidth="2.5"
+    />
+    {/* Inner Sage Chamfered Rim */}
+    <polygon
+      points="13,7 347,7 353,13 353,49 347,55 13,55 7,49 7,13"
+      fill="#163324"
+      stroke="#306850"
+      strokeWidth="2"
+    />
+    {/* 4 Inner Corner Diagonal Ticks */}
+    <polyline points="11,16 16,11" stroke="#88c070" strokeWidth="2" />
+    <polyline points="349,16 344,11" stroke="#88c070" strokeWidth="2" />
+    <polyline points="11,46 16,51" stroke="#88c070" strokeWidth="2" />
+    <polyline points="349,46 344,51" stroke="#88c070" strokeWidth="2" />
+  </svg>
+);
+
+/**
+ * Pixel Diamond Icon ◇ for the Top Header Banner
+ */
+const PixelDiamondIcon: React.FC = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 12 12"
+    className="relative z-10 w-4 h-4 shrink-0"
+    style={{ shapeRendering: 'crispEdges' }}
+  >
+    <path
+      d="M5 1h2v2h2v2h2v2H9v2H7v2H5V9H3V7H1V5h2V3h2V1zm0 2v2H3v2h2v2h2V7h2V5H7V3H5z"
+      fill="#e0f8d0"
+    />
+    <rect x="5" y="5" width="2" height="2" fill="#306850" />
+  </svg>
+);
+
+/**
+ * Chunky 32-Bit Pixel Icons for the 3 Stacked GBA Title Buttons (Reference Screen 1)
+ */
+const PixelSwordsIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
+    {/* Dark Outlines */}
+    <path
+      d="M2 2h4v2h2v2h2v2h2v2h2V8h2V6h2V4h4v4h-2v2h-2v2h-2v2h2v2h2v2h2v4h-4v-2h-2v-2h-2v-2h-4v2H8v2H6v2H2v-4h2v-2h2v-2h2v-2H6V8H4V6H2V2z"
+      fill="#081820"
+    />
+    {/* Cream Sword Blades */}
+    <path
+      d="M3 3h2v2h2v2h2v2h2v2h2V9h2V7h2V5h2V3h2v2h-2v2h-2v2h-2v2h-2v2h-2v2H9v2H7v2H5v-2h2v-2h2v-2h2v-2H9V9H7V7H5V5H3V3z"
+      fill="#e0f8d0"
+    />
+    {/* Sage Blade Shading & Crossguards */}
+    <path
+      d="M4 5h2v2h2v2h2v2H8V9H6V7H4V5zm14 0h2v2h-2v2h-2v2h-2V9h2V7h2V5zM5 15h3v3H5v-3zm11 0h3v3h-3v-3zM3 19h2v2H3v-2zm16 0h2v2h-2v-2z"
+      fill="#88c070"
+    />
+  </svg>
+);
+
+const PixelShieldIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
+    {/* Outer Shield Rim */}
+    <path
+      d="M4 2h16v10h-1v3h-2v2h-2v2h-2v2H11v-2H9v-2H7v-2H5v-3H4V2z"
+      fill="#081820"
+    />
+    <path
+      d="M5 3h14v9h-1v2h-2v2h-2v2h-4v-2H8v-2H6v-2H5V3z"
+      fill="#e0f8d0"
+    />
+    <path
+      d="M6 4h12v7h-1v2h-2v2h-2v1h-2v-1H9v-2H7v-2H6V4z"
+      fill="#183828"
+    />
+    <path
+      d="M7 5h10v5h-1v2h-2v2h-4v-2H8v-2H7V5z"
+      fill="#306850"
+    />
+    {/* Center Flame / Leaf Emblem */}
+    <path
+      d="M11 6h2v2h2v2h1v3h-2v2h-4v-2H8v-3h1V8h2V6z"
+      fill="#e0f8d0"
+    />
+    <rect x="11" y="10" width="2" height="3" fill="#306850" />
+  </svg>
+);
+
+const PixelChestIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
+    {/* Isometric 3D Box Outline */}
+    <path
+      d="M9 2h6v1h3v1h2v1h2v12h-2v1h-2v1h-3v1H9v-1H6v-1H4v-1H2V5h2V4h2V3h3V2z"
+      fill="#081820"
+    />
+    {/* Top Lid Highlight */}
+    <path
+      d="M9 3h6v1h3v1h2v2h-3v1h-3v1h-4V8H7V7H4V5h2V4h3V3z"
+      fill="#88c070"
+    />
+    {/* Left & Right Isometric Box Faces */}
+    <path d="M3 8h3v1h3v1h2v9H8v-1H5v-1H3V8z" fill="#306850" />
+    <path d="M13 10h2V9h3V8h3v9h-2v1h-3v1h-3v-9z" fill="#183828" />
+    {/* Cream Edges & Center Clasp */}
+    <path
+      d="M3 7h4v1h3v1h4V8h3V7h4v1h-4v1h-3v1h-2v9h-2v-9h-2V9H7V8H3V7z"
+      fill="#e0f8d0"
+    />
+    <rect x="10" y="10" width="4" height="4" fill="#e0f8d0" />
+    <rect x="11" y="11" width="2" height="2" fill="#306850" />
+  </svg>
+);
+
 export const TitleScreen: React.FC<TitleScreenProps> = ({
-  onStartBattle,
   onOpenGacha,
   onOpenWardrobe,
   onOpenTeamSelect,
-  selectedTeam,
-  inventory,
   availablePacks,
   lastDailyClaimTime,
   isMuted,
   onToggleMute,
 }) => {
   const [dailyStatus, setDailyStatus] = useState(() => getDailyPackCooldown(lastDailyClaimTime));
-  const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-
-  // Rotate nostalgic background art every 10 seconds
-  useEffect(() => {
-    const bgTimer = setInterval(() => {
-      setCurrentSceneIndex((prev) => (prev + 1) % COZY_BACKGROUND_SCENES.length);
-    }, 10000);
-    return () => clearInterval(bgTimer);
-  }, []);
+  const [isCollectionMenuOpen, setIsCollectionMenuOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,30 +219,18 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     return () => clearInterval(timer);
   }, [lastDailyClaimTime]);
 
-  const activeScene = COZY_BACKGROUND_SCENES[currentSceneIndex];
-
-  // Lead Pokémon official artwork (Ken Sugimori style)
-  const leadMon = selectedTeam.team[0];
-  const leadArtUrl = leadMon ? getOfficialArtworkUrl(leadMon.nationalDex) : getOfficialArtworkUrl(25);
-
-  const handleNextScene = () => {
-    soundFX.playSelect();
-    setCurrentSceneIndex((prev) => (prev + 1) % COZY_BACKGROUND_SCENES.length);
-  };
-
-  const handlePrevScene = () => {
-    soundFX.playSelect();
-    setCurrentSceneIndex((prev) => (prev - 1 + COZY_BACKGROUND_SCENES.length) % COZY_BACKGROUND_SCENES.length);
-  };
-
-  // Bind Enter and Space on title screen
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === 'Enter' || e.code === 'Space') {
         e.preventDefault();
         soundFX.playSelect();
-        onStartBattle();
+        onOpenTeamSelect('teams');
+      } else if (e.code === 'KeyG') {
+        e.preventDefault();
+        soundFX.playSelect();
+        onOpenTeamSelect('lead');
       } else if (e.code === 'KeyM') {
         e.preventDefault();
         onToggleMute();
@@ -87,237 +239,197 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         onOpenGacha();
       } else if (e.code === 'KeyT') {
         e.preventDefault();
-        onOpenTeamSelect();
+        onOpenTeamSelect('teams');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onStartBattle, onToggleMute, onOpenGacha, onOpenTeamSelect]);
+  }, [onOpenTeamSelect, onToggleMute, onOpenGacha]);
 
   return (
-    <div className="relative min-h-[100dvh] h-[100dvh] w-full flex flex-col justify-between overflow-hidden bg-slate-950 text-slate-100 select-none">
-      {/* Nostalgic 2000s Rotating Background Artwork with Ambient Scanlines */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {COZY_BACKGROUND_SCENES.map((scene, idx) => {
-          const isCurrent = idx === currentSceneIndex;
-          return (
-            <div
-              key={scene.id}
-              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                isCurrent ? 'opacity-40 scale-100' : 'opacity-0 scale-105'
-              }`}
-            >
-              <img
-                src={scene.imageUrl}
-                alt={scene.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center filter saturate-110 brightness-90"
-              />
-            </div>
-          );
-        })}
+    <div className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#081820] text-[#e0f8d0] flex items-center justify-center p-2 sm:p-3 select-none overflow-hidden">
+      {/* Unobtrusive Audio Mute Button Outside the GBA Screen Frame */}
+      <button
+        onClick={() => {
+          onToggleMute();
+          soundFX.playSelect();
+        }}
+        aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+        title="Toggle Audio [M]"
+        className="fixed top-2.5 right-2.5 z-40 p-1.5 bg-[#081820] border-2 border-[#306850] text-[#88c070] hover:text-[#e0f8d0] cursor-pointer"
+      >
+        {isMuted ? <VolumeX className="w-3.5 h-3.5 text-[#a84040]" /> : <Volume2 className="w-3.5 h-3.5 text-[#88c070]" />}
+      </button>
 
-        {/* Nostalgic CRT / Game Boy Scanline & Vignette Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/60" />
-        <div className="absolute inset-0 scanlines-overlay opacity-15" />
-      </div>
+      {/* 2:3 GBA Handheld Portrait Frame (Matches Reference Screen 1) */}
+      <div className="relative w-full max-w-[360px] sm:max-w-[390px] h-full max-h-[820px] gba-screen-border p-3 sm:p-4 flex flex-col justify-between overflow-hidden">
+        {/* 4 Inner Corner Square Rivets */}
+        <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
+        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
+        <span className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
+        <span className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
 
-      {/* Top Header: GBA Ribbon Bar & Audio / Scene Controls */}
-      <header className="relative z-10 w-full max-w-5xl mx-auto px-3 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-slate-950 font-bold shadow-md border border-amber-300">
-            <Sparkles className="w-4 h-4 text-slate-950" />
-          </div>
-          <div>
-            <div className="font-pixel text-[9px] sm:text-[10px] text-amber-400 tracking-wider">
-              DAILY SHOWDOWN
-            </div>
-            <div className="text-xs sm:text-sm font-bold text-amber-200 font-pixel">
-              DAILY CYNTHIA
-            </div>
-          </div>
-        </div>
+        {/* Top Chamfered Banner: ◇ DAILY CHAMPION ◇ */}
+        <header className="relative z-10 w-full h-[58px] sm:h-[66px] shrink-0 flex items-center justify-between px-4">
+          <ChamferedBannerFrameSVG />
+          <PixelDiamondIcon />
+          <h1 className="relative z-10 font-pixel text-[15px] xs:text-[17px] sm:text-[19px] text-[#e0f8d0] gba-title-text drop-shadow-[2px_2px_0_#306850] whitespace-nowrap">
+            DAILY CHAMPION
+          </h1>
+          <PixelDiamondIcon />
+        </header>
 
-        {/* Background Artwork Switcher & Mute */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded pkmn-frame-dark text-xs text-slate-300">
-            <button
-              onClick={handlePrevScene}
-              aria-label="Previous background"
-              className="p-0.5 text-slate-400 hover:text-white transition cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="text-[9px] sm:text-[10px] font-pixel text-amber-300 truncate max-w-[110px] sm:max-w-[150px]">
-              {activeScene.title}
-            </span>
-            <button
-              onClick={handleNextScene}
-              aria-label="Next background"
-              className="p-0.5 text-slate-400 hover:text-white transition cursor-pointer"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <button
-            onClick={() => {
-              onToggleMute();
-              soundFX.playSelect();
-            }}
-            aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            className="p-2 rounded pkmn-frame-dark text-slate-300 hover:text-white transition cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Center Stage: 2000s Pokémon Title & Ken Sugimori Art Hero */}
-      <main className="relative z-10 w-full max-w-4xl mx-auto px-4 py-2 sm:py-4 flex-1 flex flex-col items-center justify-center text-center">
-        {/* Title Screen Logo (Cynthia Black & Gold Championship Style) */}
-        <div className="mb-2 sm:mb-4">
-          <div className="inline-block relative">
-            <h1 className="font-pixel text-2xl xs:text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-yellow-400 to-amber-600 drop-shadow-[0_4px_12px_rgba(212,175,55,0.45)] tracking-wider">
-              DAILY CYNTHIA
-            </h1>
-            <div className="font-pixel text-[9px] xs:text-[11px] sm:text-xs text-amber-300 tracking-widest mt-1">
-              ★ SINNOH CHAMPION SHOWDOWN ★
-            </div>
-          </div>
-        </div>
-
-        {/* Ken Sugimori Artwork Showcase & Custom Gen 3 Mini Trainer Sprite */}
-        <div className="relative my-2 sm:my-3 flex items-center justify-center gap-3 sm:gap-6">
-          {/* Subtle Stage Halo */}
-          <div className="absolute w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-red-600/15 blur-2xl pointer-events-none" />
-
-          {/* Official Ken Sugimori Artwork */}
-          <div className="relative group cursor-pointer" onClick={onOpenTeamSelect} title="Click to change your Pokémon squad">
-            <img
-              src={leadArtUrl}
-              alt={leadMon.species}
-              loading="eager"
-              className="w-24 h-24 xs:w-32 xs:h-32 sm:w-44 sm:h-44 object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.8)] group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full pkmn-frame-cream font-pixel text-[8px] sm:text-[9px] text-slate-900 border border-slate-700 shadow-md whitespace-nowrap">
-              LEAD: {leadMon.species.toUpperCase()}
-            </div>
-          </div>
-
-          {/* Player Custom Gen 3 Mini Trainer Sprite on Summit Pedestal */}
-          {inventory?.equippedTrainer && (
-            <div
-              onClick={onOpenWardrobe}
-              title="Click to customize your Gen 3 Trainer Sprite & Gear!"
-              className="relative flex flex-col items-center justify-end group cursor-pointer active:scale-95 transition-transform pb-2"
-            >
-              {/* Mini Pedestal Disc */}
-              <div className="absolute bottom-1 w-16 sm:w-20 h-3.5 rounded-full bg-slate-900 border border-indigo-400/50 shadow-[0_0_10px_rgba(99,102,241,0.3)] pointer-events-none" />
-
-              <div className="w-12 h-18 sm:w-16 sm:h-24 filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.8)] group-hover:scale-110 transition-transform origin-bottom">
-                <MiniTrainerSVG
-                  config={inventory.equippedTrainer}
-                  posture="idle"
-                />
-              </div>
-
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-indigo-950/90 text-amber-300 font-pixel text-[7.5px] sm:text-[8px] border border-amber-400/50 shadow whitespace-nowrap flex items-center gap-1 group-hover:border-amber-300">
-                <Sparkles className="w-2 h-2 text-amber-400 animate-spin" />
-                <span>{getTrainerBase(inventory.equippedTrainer.baseId).name.split(' (')[0].toUpperCase()}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Authentic Gen 1-3 Menu Window (Iconic Double-Line Frame) */}
-        <div className="w-full max-w-md pkmn-frame-dark p-3 sm:p-4 my-2 sm:my-3 text-left">
-          <div className="space-y-2">
-            {/* Start Battle Choice */}
-            <button
-              onClick={() => {
-                soundFX.playSelect();
-                onStartBattle();
-              }}
-              data-start="true"
-              className="w-full pkmn-btn pkmn-btn-gold py-3 px-4 text-xs sm:text-sm flex items-center justify-between text-left group"
-            >
-              <div className="flex items-center gap-2 text-slate-950 font-bold">
-                <span className="pkmn-cursor text-slate-950">▶</span>
-                <span>CHALLENGE CHAMPION CYNTHIA</span>
-              </div>
-              <span className="pkmn-btn-round-a text-[9px]">A</span>
-            </button>
-
-            {/* Booster Packs / TCG Gacha Choice */}
-            <button
-              onClick={() => {
-                soundFX.playSelect();
-                onOpenGacha();
-              }}
-              className="w-full pkmn-btn pkmn-btn-gold py-2.5 px-4 text-xs flex items-center justify-between text-left"
-            >
-              <div className="flex items-center gap-2 text-slate-950">
-                <Package className="w-4 h-4 text-slate-950" />
-                <span>BOOSTER PACKS</span>
-                {availablePacks > 0 && (
-                  <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[9px] font-black">
-                    {availablePacks}
-                  </span>
-                )}
-              </div>
-              <span className="text-[9px] text-slate-800 font-mono-code font-bold">
-                {dailyStatus.isAvailable ? 'FREE READY' : dailyStatus.formattedTime}
-              </span>
-            </button>
-
-            {/* Squad Selection & Custom Sprite Studio Row */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => {
-                  soundFX.playSelect();
-                  onOpenTeamSelect();
-                }}
-                className="pkmn-btn pkmn-btn-blue py-2 px-3 text-[10px] sm:text-xs flex items-center justify-center gap-1.5"
-              >
-                <span>SQUAD ({selectedTeam.name.slice(0, 8)})</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  soundFX.playSelect();
-                  onOpenWardrobe();
-                }}
-                className="pkmn-btn pkmn-btn-emerald py-2 px-3 text-[10px] sm:text-xs flex items-center justify-center gap-1.5 group"
-              >
-                <Palette className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
-                <span>SPRITE STUDIO</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Flashing "PRESS START" Prompt */}
+        {/* Central Hero Stage: Champion Pixel Portrait + Ukiyo-e Waves on #081820 */}
         <div
           onClick={() => {
             soundFX.playSelect();
-            onStartBattle();
+            onOpenTeamSelect('teams');
           }}
-          className="font-pixel text-[10px] sm:text-xs text-amber-300 animate-pulse cursor-pointer py-1"
+          className="relative z-20 flex-1 min-h-0 w-full flex items-end justify-center overflow-hidden cursor-pointer -mt-2"
+          title="Click to challenge Today's Teams"
         >
-          - PRESS [ENTER] OR [SPACE] TO START -
+          <svg
+            viewBox="32 178 618 442"
+            preserveAspectRatio="xMidYMax slice"
+            className="w-full h-full max-h-full select-none pixelated overflow-hidden"
+            role="img"
+            aria-label="Champion Cynthia Pixel Portrait"
+          >
+            <defs>
+              <clipPath id="cynthia-hero-clip">
+                <rect x="32" y="178" width="618" height="442" />
+              </clipPath>
+            </defs>
+            <image
+              href="/sprites/champion_hero_ref.jpg"
+              x="0"
+              y="0"
+              width="682"
+              height="1024"
+              clipPath="url(#cynthia-hero-clip)"
+              preserveAspectRatio="none"
+            />
+          </svg>
         </div>
-      </main>
 
-      {/* Retro Game Boy Footer Control Bar */}
-      <footer className="relative z-10 w-full py-2.5 px-4 text-center font-pixel text-[8px] sm:text-[9px] text-slate-400 border-t border-slate-800/80 bg-slate-950/80">
-        <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
-          <span>[A] START BATTLE</span>
-          <span>[P] BOOSTER PACKS</span>
-          <span>[T] SELECT SQUAD</span>
-          <span>[M] MUTE SOUND</span>
-        </div>
-      </footer>
+        {/* Bottom 3 Stacked Chamfered GBA Command Buttons (Reference Screen 1) */}
+        <nav className="relative z-20 w-full flex flex-col gap-2 sm:gap-2.5 shrink-0">
+          {/* 1. DAILY BATTLE */}
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenTeamSelect('teams');
+            }}
+            data-start="true"
+            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+          >
+            <ChamferedButtonFrameSVG />
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+              <PixelSwordsIcon />
+              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+                DAILY BATTLE
+              </span>
+            </div>
+          </button>
+
+          {/* 2. GAUNTLET RUN */}
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenTeamSelect('lead');
+            }}
+            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+          >
+            <ChamferedButtonFrameSVG />
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+              <PixelShieldIcon />
+              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+                GAUNTLET RUN
+              </span>
+            </div>
+          </button>
+
+          {/* 3. COLLECTION */}
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              setIsCollectionMenuOpen(true);
+            }}
+            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+          >
+            <ChamferedButtonFrameSVG />
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+              <PixelChestIcon />
+              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+                COLLECTION
+              </span>
+            </div>
+          </button>
+        </nav>
+
+        {/* Collection Sub-Menu Overlay (Booster Packs vs. Trainer Sprite Studio) */}
+        {isCollectionMenuOpen && (
+          <div
+            className="absolute inset-0 z-30 bg-[#081820]/95 flex flex-col items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Collection Hub"
+          >
+            <div className="w-full gba-frame-cream p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b-2 border-[#306850] pb-2">
+                <span className="font-pixel text-xs text-[#081820]">COLLECTION VAULT</span>
+                <span className="gba-hanko-seal text-[8px]">蔵</span>
+              </div>
+
+              <p className="font-pixel text-[8px] text-[#306850] leading-relaxed">
+                Open daily TCG Booster Packs or customize your Gen 3 Trainer &amp; Pokémon gear.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundFX.playSelect();
+                  setIsCollectionMenuOpen(false);
+                  onOpenGacha();
+                }}
+                className="w-full gba-btn py-3 px-3 text-xs flex items-center justify-between"
+              >
+                <span>▶ BOOSTER PACKS</span>
+                <span className="text-[8px] text-[#88c070]">
+                  {availablePacks > 0 ? `${availablePacks} READY` : dailyStatus.isAvailable ? 'FREE READY' : dailyStatus.formattedTime}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundFX.playSelect();
+                  setIsCollectionMenuOpen(false);
+                  onOpenWardrobe();
+                }}
+                className="w-full gba-btn py-3 px-3 text-xs flex items-center justify-between"
+              >
+                <span>▶ SPRITE STUDIO &amp; GEAR</span>
+                <span className="text-[8px] text-[#88c070]">WARDROBE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundFX.playSelect();
+                  setIsCollectionMenuOpen(false);
+                }}
+                className="w-full gba-select-btn py-2.5 text-[10px] text-center mt-1"
+              >
+                BACK TO TITLE
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

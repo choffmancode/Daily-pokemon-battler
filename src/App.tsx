@@ -6,7 +6,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { TitleScreen } from './components/TitleScreen';
 import { BattleArena } from './components/BattleArena';
-import { BattleState, TeamPreset, UserCosmeticInventory } from './game/types';
+import { BattleState, Pokemon, TeamPreset, UserCosmeticInventory } from './game/types';
 import { BEGINNER_TEAMS } from './game/constants';
 import { initializeBattle } from './game/battleEngine';
 import { loadUserInventory, saveUserInventory } from './game/gachaEngine';
@@ -36,6 +36,7 @@ export default function App() {
   const [isGachaModalOpen, setIsGachaModalOpen] = useState<boolean>(false);
   const [isWardrobeModalOpen, setIsWardrobeModalOpen] = useState<boolean>(false);
   const [isTeamSelectModalOpen, setIsTeamSelectModalOpen] = useState<boolean>(false);
+  const [teamSelectInitialStep, setTeamSelectInitialStep] = useState<'teams' | 'lead'>('teams');
   const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
 
   // Sync state machine to document.body.dataset.state
@@ -43,16 +44,58 @@ export default function App() {
     document.body.dataset.state = gameState;
   }, [gameState]);
 
-  // Support ?autostart=1 query parameter
+  // Support ?autostart=1 and ?preview=victory|defeat query parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('autostart') === '1') {
+    const preview = params.get('preview');
+    if (preview === 'victory') {
+      const state = initializeBattle(BEGINNER_TEAMS[0].team);
+      state.phase = 'battle_over';
+      state.winner = 'player';
+      state.turnNumber = 8;
+      // Mark 2 player Pokémon as KO'd to match reference Victory summary
+      if (state.playerTeam[2]) {
+        state.playerTeam[2].currentHp = 0;
+        state.playerTeam[2].fainted = true;
+      }
+      if (state.playerTeam[5]) {
+        state.playerTeam[5].currentHp = 0;
+        state.playerTeam[5].fainted = true;
+      }
+      state.opponentTeam.forEach((p) => {
+        p.currentHp = 0;
+        p.fainted = true;
+      });
+      setBattleState(state);
+      setGameState('playing');
+    } else if (preview === 'defeat') {
+      const state = initializeBattle(BEGINNER_TEAMS[0].team);
+      state.phase = 'battle_over';
+      state.winner = 'opponent';
+      state.turnNumber = 7;
+      state.playerTeam.forEach((p) => {
+        p.currentHp = 0;
+        p.fainted = true;
+      });
+      // Leave 2 of Cynthia's Pokémon alive (including Garchomp at 34% HP)
+      state.opponentTeam.forEach((p, idx) => {
+        if (idx < 4) {
+          p.currentHp = 0;
+          p.fainted = true;
+        } else if (p.species.toLowerCase() === 'garchomp') {
+          p.currentHp = Math.round(p.maxHp * 0.34);
+          p.fainted = false;
+        }
+      });
+      setBattleState(state);
+      setGameState('playing');
+    } else if (params.get('autostart') === '1') {
       startNewBattle();
     }
   }, []);
 
-  const startNewBattle = () => {
-    const freshState = initializeBattle(selectedTeam.team);
+  const startNewBattle = (customRoster?: Pokemon[]) => {
+    const freshState = initializeBattle(customRoster ?? selectedTeam.team);
     setBattleState(freshState);
     setGameState('playing');
   };
@@ -74,14 +117,26 @@ export default function App() {
     }
   };
 
+  const handleStartBattleWithTeam = (team: TeamPreset, customRoster: Pokemon[]) => {
+    setSelectedTeam(team);
+    setIsTeamSelectModalOpen(false);
+    startNewBattle(customRoster);
+  };
+
   return (
     <main className="w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] bg-[#081820] text-[#e0f8d0] font-pixel overflow-hidden overscroll-none touch-manipulation">
       {gameState === 'title' ? (
         <TitleScreen
-          onStartBattle={startNewBattle}
+          onStartBattle={() => {
+            setTeamSelectInitialStep('teams');
+            setIsTeamSelectModalOpen(true);
+          }}
           onOpenGacha={() => setIsGachaModalOpen(true)}
           onOpenWardrobe={() => setIsWardrobeModalOpen(true)}
-          onOpenTeamSelect={() => setIsTeamSelectModalOpen(true)}
+          onOpenTeamSelect={(step = 'teams') => {
+            setTeamSelectInitialStep(step);
+            setIsTeamSelectModalOpen(true);
+          }}
           selectedTeam={selectedTeam}
           inventory={inventory}
           availablePacks={inventory.availablePacks}
@@ -94,7 +149,11 @@ export default function App() {
           battleState={battleState}
           onUpdateBattle={setBattleState}
           onExitToTitle={() => setGameState('title')}
-          onRestartBattle={startNewBattle}
+          onRestartBattle={() => startNewBattle(selectedTeam.team)}
+          onChangeTeam={() => {
+            setTeamSelectInitialStep('teams');
+            setIsTeamSelectModalOpen(true);
+          }}
           inventory={inventory}
           onInventoryUpdate={handleInventoryUpdate}
           onOpenGachaModal={() => setIsGachaModalOpen(true)}
@@ -132,6 +191,8 @@ export default function App() {
             onClose={() => setIsTeamSelectModalOpen(false)}
             selectedTeamId={selectedTeam.id}
             onSelectTeam={handleSelectTeam}
+            onStartBattleWithTeam={handleStartBattleWithTeam}
+            initialStep={teamSelectInitialStep}
           />
         )}
       </Suspense>

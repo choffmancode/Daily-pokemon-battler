@@ -4,10 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { X, Shield, Swords, Zap, Heart, Sparkles } from 'lucide-react';
 import { Pokemon, PokemonType } from '../game/types';
-import { TYPE_COLORS } from '../game/constants';
-import { getOfficialArtworkUrl } from '../game/data/typeChart';
+import { GBA_TYPE_COLORS, TYPE_ABBR, getOfficialArtworkUrl } from '../game/data/typeChart';
 import { soundFX } from './AudioEngine';
 
 interface PokemonSummaryModalProps {
@@ -27,298 +25,277 @@ export const PokemonSummaryModal: React.FC<PokemonSummaryModalProps> = ({
   opponentMon,
   isOpponentInitial = false,
 }) => {
-  const [selectedMonId, setSelectedMonId] = useState<string>(initialPokemon.id);
+  const [selectedMonId, setSelectedMonId] = useState<string>(
+    isOpponentInitial ? opponentMon.id : initialPokemon.id
+  );
   const [activeTab, setActiveTab] = useState<'stats' | 'moves'>('stats');
 
   if (!isOpen) return null;
 
-  // Determine currently viewed pokemon
   const isViewingOpponent = selectedMonId === opponentMon.id;
   const currentMon = isViewingOpponent
     ? opponentMon
     : playerTeam.find((p) => p.id === selectedMonId) || initialPokemon;
 
-  const hpPct = Math.round((currentMon.currentHp / currentMon.maxHp) * 100);
+  const hpPct = Math.max(0, Math.min(100, Math.round((currentMon.currentHp / currentMon.maxHp) * 100)));
 
-  const getHpColor = (pct: number) => {
-    if (pct > 50) return 'bg-emerald-500';
-    if (pct > 20) return 'bg-yellow-400';
-    return 'bg-red-500 animate-pulse';
+  const getHpFillHex = (pct: number) => {
+    if (pct > 50) return '#58d878';
+    if (pct > 20) return '#e8b828';
+    return '#d84848';
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-[#081820]/95 gba-outer-wave gba-scanlines overflow-y-auto select-none"
       role="dialog"
       aria-modal="true"
       aria-label={`${currentMon.species} Battle Summary`}
     >
-      <div className="relative w-full max-w-2xl my-auto rounded-2xl pkmn-frame-dark p-4 sm:p-6 text-slate-100 overflow-hidden shadow-2xl">
-        {/* Modal Header Bar */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700 mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded pkmn-btn-red flex items-center justify-center text-white font-pixel text-xs shadow-md">
-              A
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-bold font-pixel text-white uppercase tracking-wider">
+      <div className="relative z-10 w-full max-w-[420px] my-auto gba-frame-emerald p-3 flex flex-col gap-2.5 text-[#e0f8d0]">
+        {/* 1. GBA Summary Header Bar */}
+        <div className="flex items-center justify-between border-b-2 border-[#306850] pb-2 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="gba-hanko-seal text-[9px] px-1.5 py-0.5 font-bold shrink-0">
+              {isViewingOpponent ? '敵' : '味'}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <h2 className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] uppercase tracking-wider">
                   POKÉMON SUMMARY
                 </h2>
-                <span className="text-[9px] font-pixel px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
-                  {isViewingOpponent ? 'RED' : 'YOU'}
+                <span className="font-pixel text-[6.5px] px-1.5 py-0.5 bg-[#081820] text-[#88c070] border border-[#88c070] shrink-0">
+                  {isViewingOpponent ? 'CHAMPION' : 'SQUAD'}
                 </span>
               </div>
-              <p className="text-[9px] font-pixel text-slate-400 mt-0.5">
-                Gen 1-3 Stats, Ability & Move Codex
+              <p className="font-pixel text-[6px] text-[#88c070] mt-0.5 truncate">
+                GEN 3 STATS, ABILITY &amp; MOVE CODEX
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               onClose();
             }}
             aria-label="Close Summary"
-            className="p-1.5 rounded pkmn-frame-dark text-slate-400 hover:text-white transition cursor-pointer"
+            className="gba-select-btn px-2 py-1 font-pixel text-[8px] cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            [X]
           </button>
         </div>
 
-        {/* Squad Quick Switch Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
-          <span className="text-[9px] font-pixel text-slate-400 uppercase shrink-0 mr-1">
-            VIEW:
-          </span>
-
-          {/* Opponent Tab */}
+        {/* 2. Squad Quick-Switch Strip */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               setSelectedMonId(opponentMon.id);
             }}
-            className={`px-2 py-1 rounded text-[9px] font-pixel flex items-center gap-1.5 transition shrink-0 border cursor-pointer ${
+            className={`px-2 py-1 font-pixel text-[7px] shrink-0 border-2 cursor-pointer ${
               isViewingOpponent
-                ? 'pkmn-btn-red ring-1 ring-red-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                ? 'bg-[#a84040] border-[#e0f8d0] text-[#e0f8d0]'
+                : 'bg-[#081820] border-[#306850] text-[#88c070]'
             }`}
           >
-            <span>RED: {opponentMon.species}</span>
+            FOE: {opponentMon.species.toUpperCase()}
           </button>
 
-          {/* Player Team Tabs */}
           {playerTeam.map((mon) => {
             const isSelected = selectedMonId === mon.id;
             return (
               <button
                 key={mon.id}
+                type="button"
                 onClick={() => {
                   soundFX.playSelect();
                   setSelectedMonId(mon.id);
                 }}
-                className={`px-2 py-1 rounded text-[9px] font-pixel flex items-center gap-1.5 transition shrink-0 border cursor-pointer ${
+                className={`px-2 py-1 font-pixel text-[7px] shrink-0 border-2 cursor-pointer ${
                   isSelected
-                    ? 'pkmn-btn-blue ring-1 ring-blue-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                } ${mon.fainted ? 'opacity-40 line-through' : ''}`}
+                    ? 'bg-[#306850] border-[#e0f8d0] text-[#e0f8d0]'
+                    : 'bg-[#081820] border-[#306850] text-[#88c070]'
+                } ${mon.fainted ? 'opacity-50 line-through' : ''}`}
               >
-                <span>{mon.species}</span>
+                {mon.species.toUpperCase()}
               </button>
             );
           })}
         </div>
 
-        {/* Main Character Sheet Card */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
-          {/* Left Column: Official Ken Sugimori Art & Species Info (5 cols) */}
-          <div className="md:col-span-5 rounded-xl pkmn-frame-dark p-3 flex flex-col items-center justify-between text-center relative overflow-hidden bg-slate-950/60">
-            <div className="absolute top-2 left-2 text-[9px] font-pixel text-amber-300">
+        {/* 3. Cream GBA Pokémon Profile Plate */}
+        <div className="gba-frame-cream p-3 text-[#081820] grid grid-cols-12 gap-2.5 items-center overflow-hidden">
+          {/* Left: Sprite & Dex Number */}
+          <div className="col-span-5 flex flex-col items-center justify-center bg-[#183828] border-2 border-[#081820] p-2 relative">
+            <span className="font-pixel text-[6.5px] text-[#88c070] self-start">
               No.{String(currentMon.nationalDex).padStart(3, '0')}
-            </div>
-            <div className="absolute top-2 right-2 text-[9px] font-pixel text-slate-400">
-              Lv.{currentMon.level}
-            </div>
+            </span>
+            <img
+              src={currentMon.spriteFront || getOfficialArtworkUrl(currentMon.nationalDex)}
+              alt={currentMon.species}
+              className="w-20 h-20 object-contain pixelated my-0.5 select-none"
+            />
+            <span className="gba-title-text text-[10px] font-bold text-[#e0f8d0]">
+              Lv{currentMon.level}
+            </span>
+          </div>
 
-            {/* Official Ken Sugimori Artwork */}
-            <div className="relative my-3 flex flex-col items-center justify-center">
-              <img
-                src={getOfficialArtworkUrl(currentMon.nationalDex)}
-                alt={currentMon.species}
-                className="w-24 h-24 sm:w-28 sm:h-28 object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.7)] hover:scale-105 transition-transform"
-              />
-            </div>
-
-            {/* Species & Typing */}
-            <div className="w-full">
-              <h3 className="font-pixel text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-1">
+          {/* Right: Name, Canonical Type Plates, HP Pill & Ability */}
+          <div className="col-span-7 flex flex-col justify-between gap-1.5 min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <h3 className="gba-title-text text-[12px] xs:text-[13px] font-bold text-[#081820] uppercase whitespace-nowrap">
                 {currentMon.species}
               </h3>
-
-              <div className="flex items-center justify-center gap-1 mb-2">
-                {currentMon.types.map((t) => (
-                  <span
-                    key={t}
-                    className={`text-[8px] px-1.5 py-0.5 rounded font-pixel font-bold uppercase ${TYPE_COLORS[t].bg} ${TYPE_COLORS[t].text}`}
-                  >
-                    {t}
-                  </span>
-                ))}
+              <div className="flex items-center gap-1 shrink-0">
+                {currentMon.types.map((t: PokemonType) => {
+                  const col = GBA_TYPE_COLORS[t] || GBA_TYPE_COLORS.Normal;
+                  return (
+                    <span
+                      key={t}
+                      className="gba-title-text text-[7.5px] font-bold px-1.5 py-[1.5px] rounded-[2px] border border-[#081820] uppercase leading-none"
+                      style={{ backgroundColor: col.bg, color: col.text }}
+                    >
+                      {TYPE_ABBR[t]}
+                    </span>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* HP Bar */}
-              <div className="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-slate-700 relative overflow-hidden mb-1">
+            {/* GBA HP Capsule */}
+            <div className="w-full flex items-center bg-[#244034] border-[1.5px] border-[#081820] rounded-full pl-2 pr-1 py-[2px]">
+              <span className="font-pixel text-[6.5px] font-bold text-[#e88840] mr-1.5">HP</span>
+              <div className="flex-1 h-[6.5px] bg-[#405850] border border-[#e8f8d8] rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${getHpColor(hpPct)}`}
-                  style={{ width: `${Math.max(0, hpPct)}%` }}
+                  className="h-full transition-all duration-300"
+                  style={{ width: `${hpPct}%`, backgroundColor: getHpFillHex(hpPct) }}
                 />
               </div>
-
-              <div className="flex items-center justify-between text-[9px] font-pixel text-slate-300">
-                <span className="text-slate-400">HP</span>
-                <span className="font-bold text-amber-300">
-                  {currentMon.currentHp}/{currentMon.maxHp}
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Right Column: Tabbed Content (Stats vs Moves) (7 cols) */}
-          <div className="md:col-span-7 flex flex-col justify-between">
-            {/* View Mode Toggle */}
-            <div className="flex items-center border-b border-slate-700 pb-2 mb-2 gap-2">
-              <button
-                onClick={() => {
-                  soundFX.playSelect();
-                  setActiveTab('stats');
-                }}
-                className={`pkmn-btn px-3 py-1 text-[9px] ${
-                  activeTab === 'stats'
-                    ? 'pkmn-btn-red ring-1 ring-red-400'
-                    : 'bg-slate-800 text-slate-300 border-slate-700'
-                }`}
-              >
-                STATS & ABILITY
-              </button>
-
-              <button
-                onClick={() => {
-                  soundFX.playSelect();
-                  setActiveTab('moves');
-                }}
-                className={`pkmn-btn px-3 py-1 text-[9px] ${
-                  activeTab === 'moves'
-                    ? 'pkmn-btn-blue ring-1 ring-blue-400'
-                    : 'bg-slate-800 text-slate-300 border-slate-700'
-                }`}
-              >
-                MOVES (4)
-              </button>
+            <div className="text-right gba-title-text text-[10px] font-bold text-[#081820]">
+              {Math.max(0, currentMon.currentHp)} / {currentMon.maxHp}
             </div>
 
-            {/* Tab 1: Base Stats & Ability */}
-            {activeTab === 'stats' ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="p-2 rounded pkmn-frame-dark text-left">
-                    <div className="text-[8px] font-pixel text-slate-400">ATTACK</div>
-                    <div className="text-xs font-pixel text-red-400 font-bold">
-                      {currentMon.baseStats.attack}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded pkmn-frame-dark text-left">
-                    <div className="text-[8px] font-pixel text-slate-400">DEFENSE</div>
-                    <div className="text-xs font-pixel text-blue-400 font-bold">
-                      {currentMon.baseStats.defense}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded pkmn-frame-dark text-left">
-                    <div className="text-[8px] font-pixel text-slate-400">SP. ATK</div>
-                    <div className="text-xs font-pixel text-purple-400 font-bold">
-                      {currentMon.baseStats.spAtk}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded pkmn-frame-dark text-left">
-                    <div className="text-[8px] font-pixel text-slate-400">SP. DEF</div>
-                    <div className="text-xs font-pixel text-emerald-400 font-bold">
-                      {currentMon.baseStats.spDef}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-2 rounded pkmn-frame-dark text-left">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-pixel text-slate-400">SPEED</span>
-                    <span className="text-xs font-pixel text-amber-300 font-bold">
-                      {currentMon.baseStats.speed}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Ability Card */}
-                <div className="p-2.5 rounded pkmn-frame-dark text-left bg-slate-900/90 border-slate-700">
-                  <div className="text-[8px] font-pixel text-amber-400 uppercase">
-                    ABILITY: {currentMon.ability}
-                  </div>
-                  <p className="text-[10px] text-slate-300 mt-1 leading-snug">
-                    {currentMon.abilityDescription}
-                  </p>
-                </div>
+            {/* Ability Strip */}
+            <div className="bg-[#d0e4b0] border border-[#306850] p-1.5">
+              <div className="gba-title-text text-[9px] font-bold text-[#183828] uppercase">
+                ABILITY: {currentMon.ability}
               </div>
-            ) : (
-              /* Tab 2: Moves */
-              <div className="space-y-1.5">
-                {currentMon.moves.map((m) => (
-                  <div
-                    key={m.id}
-                    className="p-2 rounded pkmn-frame-dark flex items-center justify-between text-left"
-                  >
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-pixel text-[9px] text-white uppercase">
-                          {m.name}
-                        </span>
-                        <span
-                          className={`text-[7px] px-1 py-0.2 rounded font-bold uppercase ${
-                            TYPE_COLORS[m.type]?.bg || 'bg-slate-600'
-                          } text-white`}
-                        >
-                          {m.type}
-                        </span>
-                      </div>
-                      <div className="text-[9px] text-slate-400 mt-0.5 truncate max-w-[200px]">
-                        {m.description}
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="font-pixel text-[8px] text-amber-300">
-                        {m.power > 0 ? `PWR ${m.power}` : 'STATUS'}
-                      </div>
-                      <div className="font-pixel text-[8px] text-slate-400">
-                        PP {m.pp}/{m.maxPp}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              <p className="gba-title-text text-[8.5px] text-[#081820] leading-tight mt-0.5">
+                {currentMon.abilityDescription}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Footer Done button */}
-        <div className="pt-2 border-t border-slate-800 flex justify-end">
+        {/* 4. Mode Toggle Tabs (STATS vs MOVES) */}
+        <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
-              onClose();
+              setActiveTab('stats');
             }}
-            className="pkmn-btn pkmn-btn-red px-5 py-2 text-xs"
+            className={`py-1.5 gba-title-text text-[11px] font-bold border-2 cursor-pointer ${
+              activeTab === 'stats'
+                ? 'bg-[#e0f8d0] text-[#081820] border-[#88c070]'
+                : 'bg-[#081820] text-[#88c070] border-[#306850]'
+            }`}
           >
-            CLOSE SUMMARY [B]
+            ▶ BASE STATS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              setActiveTab('moves');
+            }}
+            className={`py-1.5 gba-title-text text-[11px] font-bold border-2 cursor-pointer ${
+              activeTab === 'moves'
+                ? 'bg-[#e0f8d0] text-[#081820] border-[#88c070]'
+                : 'bg-[#081820] text-[#88c070] border-[#306850]'
+            }`}
+          >
+            ▶ MOVES (4)
           </button>
         </div>
+
+        {/* 5. Tab Content */}
+        {activeTab === 'stats' ? (
+          <div className="gba-frame-cream p-2.5 text-[#081820] grid grid-cols-3 gap-1.5">
+            {[
+              { label: 'HP', val: currentMon.baseStats.hp },
+              { label: 'ATTACK', val: currentMon.baseStats.attack },
+              { label: 'DEFENSE', val: currentMon.baseStats.defense },
+              { label: 'SP. ATK', val: currentMon.baseStats.spAtk },
+              { label: 'SP. DEF', val: currentMon.baseStats.spDef },
+              { label: 'SPEED', val: currentMon.baseStats.speed },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-[#d0e4b0] border border-[#306850] p-1.5 flex flex-col justify-between"
+              >
+                <span className="font-pixel text-[6.5px] text-[#306850]">{stat.label}</span>
+                <span className="gba-title-text text-[12px] font-bold text-[#081820] mt-0.5">
+                  {stat.val}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {currentMon.moves.map((m) => {
+              const col = GBA_TYPE_COLORS[m.type] || GBA_TYPE_COLORS.Normal;
+              return (
+                <div
+                  key={m.id}
+                  className="gba-frame-cream px-2.5 py-1.5 text-[#081820] flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="gba-title-text text-[8px] font-bold px-1.5 py-[1px] border border-[#081820] uppercase"
+                        style={{ backgroundColor: col.bg, color: col.text }}
+                      >
+                        {TYPE_ABBR[m.type]}
+                      </span>
+                      <span className="gba-title-text text-[11px] font-bold text-[#081820] uppercase truncate">
+                        {m.name}
+                      </span>
+                    </div>
+                    <p className="gba-title-text text-[8.5px] text-[#183828] truncate mt-0.5">
+                      {m.description}
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="gba-title-text text-[9.5px] font-bold text-[#081820]">
+                      {m.power > 0 ? `PWR ${m.power}` : 'STATUS'}
+                    </div>
+                    <div className="font-pixel text-[7px] text-[#306850]">
+                      PP {m.pp}/{m.maxPp}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 6. Footer Close Button */}
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playSelect();
+            onClose();
+          }}
+          className="w-full gba-btn py-2.5 gba-title-text text-[12px] font-bold text-[#e0f8d0] text-center cursor-pointer"
+        >
+          [BACK TO BATTLE]
+        </button>
       </div>
     </div>
   );

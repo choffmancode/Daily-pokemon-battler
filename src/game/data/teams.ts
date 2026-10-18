@@ -5,6 +5,7 @@
 
 import { Pokemon, TeamPreset } from "../types";
 import { getAnimatedSpriteUrl } from "./typeChart";
+import { enrichMoveWithMechanics } from "./moveMechanicsKB";
 
 export const CHAMPION_RED_TEAM: Pokemon[] = [
   {
@@ -507,8 +508,13 @@ export function getDailyChallengeTeam(dateStr?: string): TeamPreset {
     return seed / 4294967296;
   };
 
-  // Shuffle candidate pool deterministically
-  const pool = JSON.parse(JSON.stringify(DAILY_ROSTER_POOL)) as Pokemon[];
+  // Shuffle candidate pool deterministically using structural cloning
+  const pool: Pokemon[] = DAILY_ROSTER_POOL.map((p) => ({
+    ...p,
+    types: [...p.types],
+    baseStats: { ...p.baseStats },
+    moves: p.moves.map((m) => enrichMoveWithMechanics({ ...m })),
+  }));
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(lcg() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -944,4 +950,15 @@ export const BEGINNER_TEAMS: TeamPreset[] = [
   },
 ];
 
-// 25+ Rich Collectible Cosmetic Cards (Pokémon Card Object Style)
+// Enrich all canonical team rosters with MOVE_MECHANICS_KB secondary effects, stat stage changes, status rates, recoil, and drain
+const enrichRosterMoves = (roster: Pokemon[]) => {
+  roster.forEach((mon) => {
+    mon.moves = mon.moves.map(enrichMoveWithMechanics);
+  });
+};
+
+enrichRosterMoves(CHAMPION_RED_TEAM);
+enrichRosterMoves(CHAMPION_CYNTHIA_TEAM);
+enrichRosterMoves(DAILY_ROSTER_POOL);
+BEGINNER_TEAMS.forEach((preset) => enrichRosterMoves(preset.team));
+

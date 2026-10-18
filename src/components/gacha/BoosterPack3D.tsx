@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { Sparkles, Package, ShieldAlert, Zap } from 'lucide-react';
 import { UserCosmeticInventory } from '../../game/types';
 
 interface BoosterPack3DProps {
@@ -23,118 +22,86 @@ export const BoosterPack3D: React.FC<BoosterPack3DProps> = ({
   onClaimDaily,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-4 sm:py-6 px-4 text-center">
-      {/* 3D TCG Booster Pack Graphic */}
+    <div className="flex flex-col items-center justify-center py-3 sm:py-4 px-2 text-center">
+      {/* GBA Emerald Pixel-Art Booster Pack Foil Card */}
       <div
         onClick={() => onOpenPack(inventory.availablePacks <= 0)}
-        className={`w-52 h-72 sm:w-60 sm:h-84 rounded-2xl relative cursor-pointer select-none transition-all duration-300 shadow-2xl overflow-hidden group perspective ${
-          packStage === 'tearing' ? 'scale-95 blur-[1px]' : 'hover:scale-105 active:scale-95'
+        className={`w-52 h-68 sm:w-56 sm:h-76 relative cursor-pointer select-none transition-transform duration-200 gba-frame-dark overflow-hidden group ${
+          packStage === 'tearing' ? 'scale-95' : 'hover:scale-[1.02] active:scale-95'
         }`}
         title="Click booster pack to tear foil & reveal cards!"
       >
-        {/* Foil Shimmer Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-red-600 via-amber-500 to-blue-700 border-4 border-amber-300 rounded-2xl shadow-inner" />
-
-        {/* Dynamic Holographic Foil Sheen */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
-
-        {/* Pack Top Crimped Foil Edge */}
-        <div className="absolute top-0 left-0 right-0 h-6 pkmn-booster-crimp bg-amber-300/40 border-b border-amber-200/60 flex items-center justify-between px-3 text-[9px] font-pixel text-slate-900">
+        {/* Top Foil Crimp Bar */}
+        <div className="w-full h-6 bg-[#306850] border-b-2 border-[#88c070] flex items-center justify-between px-3 font-pixel text-[7.5px] text-[#e0f8d0]">
           <span>SERIES 1</span>
-          <span>5 CARDS</span>
+          <span>3 CARDS</span>
         </div>
 
-        {/* Center Pokémon Crest / TCG Title */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-white">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-950/80 border-2 border-yellow-300 flex items-center justify-center mb-2 shadow-lg group-hover:rotate-6 transition-transform">
-            <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300 animate-pulse" />
+        {/* Center GBA Foil Pack Body */}
+        <div className="flex-1 h-[calc(100%-48px)] bg-[#183828] flex flex-col items-center justify-center p-3 relative">
+          {/* Inner Cream Double-Lined Crest Frame */}
+          <div className="w-16 h-16 bg-[#081820] border-2 border-[#e0f8d0] outline outline-2 outline-[#88c070] flex items-center justify-center mb-3">
+            <svg width="36" height="36" viewBox="0 0 24 24" shapeRendering="crispEdges">
+              <polygon points="12,1 15,8 22,11 15,14 12,21 9,14 2,11 9,8" fill="#88c070" />
+              <polygon points="12,4 14,9 19,11 14,13 12,18 10,13 5,11 10,9" fill="#e0f8d0" />
+            </svg>
           </div>
 
-          <div className="font-pixel text-base sm:text-lg tracking-wider text-yellow-300 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          <div className="gba-title-text text-[15px] sm:text-[16px] font-bold text-[#e0f8d0] tracking-wider uppercase drop-shadow-[2px_2px_0_#081820]">
             CHAMPION PACK
           </div>
-          <div className="text-[9px] sm:text-[10px] font-pixel text-amber-100 tracking-wide mt-1">
-            SINNOH EDITION
+          <div className="font-pixel text-[7.5px] text-[#88c070] tracking-wider mt-1">
+            EMERALD EDITION
           </div>
-          <div className="text-[8px] sm:text-[9px] text-slate-200 mt-2 font-pixel bg-slate-950/90 px-2 py-1 rounded border border-slate-700">
+          <div className="mt-2.5 bg-[#081820] border border-[#88c070] px-2 py-1 font-pixel text-[6.5px] text-[#e0f8d0]">
             ★ GUARANTEED HOLO ★
           </div>
         </div>
 
-        {/* Pack Bottom Crimped Foil Edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 pkmn-booster-crimp bg-amber-300/40 border-t border-amber-200/60 flex items-center justify-center text-[8px] font-pixel text-slate-900">
-          POKÉMON 2000s TCG
+        {/* Bottom Foil Crimp Bar */}
+        <div className="w-full h-6 bg-[#306850] border-t-2 border-[#88c070] flex items-center justify-center font-pixel text-[7px] text-[#e0f8d0]">
+          DAILY CHAMPION TCG
         </div>
 
-        {/* Tearing Slice Animation Layer */}
+        {/* Tearing Overlay */}
         {packStage === 'tearing' && (
-          <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-30 animate-pulse">
-            <span className="font-pixel text-xs sm:text-sm text-slate-950 bg-yellow-300 px-3 py-1 rounded border-2 border-black">
+          <div className="absolute inset-0 bg-[#e0f8d0]/90 flex items-center justify-center z-30">
+            <span className="gba-title-text text-[12px] font-bold text-[#081820] bg-[#88c070] px-3 py-1 border-2 border-[#081820]">
               TEARING FOIL...
             </span>
           </div>
         )}
       </div>
 
-      {/* Bag Count & Cooldown Status */}
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-pixel text-slate-300">
-          <Package className="w-4 h-4 text-amber-400" />
-          <span>PACKS IN BAG:</span>
-          <span className="font-bold text-amber-300 text-sm sm:text-base tabular-nums">
-            {inventory.availablePacks}
-          </span>
+      {/* Bag Count & Action Buttons */}
+      <div className="mt-3 w-full max-w-[360px] flex flex-col items-center gap-2">
+        <div className="gba-frame-cream px-3 py-1 text-[#081820] gba-title-text text-[11px] font-bold">
+          PACKS IN BAG: {inventory.availablePacks}
         </div>
 
-        {/* PROMINENT ACTION BUTTONS FOR OPENING PACKS */}
-        <div className="flex items-center gap-2.5 mt-2 flex-wrap justify-center">
-          {/* 1. Primary Open Button */}
-          {inventory.availablePacks > 0 ? (
-            <button
-              onClick={() => onOpenPack(false)}
-              disabled={packStage === 'tearing'}
-              className="pkmn-btn pkmn-btn-gold px-6 py-3 text-xs sm:text-sm flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95"
-            >
-              <Zap className="w-4 h-4 text-slate-950 fill-current" />
-              <span>TEAR & OPEN PACK [A]</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => onOpenPack(true)}
-              disabled={packStage === 'tearing'}
-              className="pkmn-btn pkmn-btn-gold px-5 py-2.5 text-xs flex items-center gap-2 shadow-xl hover:scale-105"
-            >
-              <Sparkles className="w-4 h-4 text-slate-950" />
-              <span>FREE PASS: OPEN NOW</span>
-            </button>
-          )}
+        <div className="w-full flex flex-col gap-1.5 mt-1">
+          <button
+            type="button"
+            onClick={() => onOpenPack(inventory.availablePacks <= 0)}
+            disabled={packStage === 'tearing'}
+            className="w-full gba-btn py-2.5 px-4 gba-title-text text-[12px] font-bold text-[#e0f8d0] text-center cursor-pointer"
+          >
+            ▶ {inventory.availablePacks > 0 ? 'TEAR & OPEN PACK [A]' : 'FREE PASS: OPEN PACK'}
+          </button>
 
-          {/* 2. Claim Free Daily Pack Button */}
           {cooldown.isAvailable ? (
             <button
+              type="button"
               onClick={onClaimDaily}
-              className="pkmn-btn pkmn-btn-emerald px-5 py-2.5 text-xs flex items-center gap-2 hover:scale-105"
+              className="w-full gba-select-btn py-2 px-4 gba-title-text text-[11px] font-bold text-center cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-white" />
-              <span>CLAIM FREE DAILY PACK</span>
+              ★ CLAIM FREE DAILY PACK
             </button>
           ) : (
-            <div className="px-3 py-2 rounded pkmn-frame-dark text-[10px] font-pixel text-slate-400 flex items-center gap-1.5">
-              <span>NEXT DAILY:</span>
-              <span className="font-bold text-amber-300">{cooldown.formattedTime}</span>
+            <div className="w-full bg-[#081820] border border-[#306850] py-1.5 px-3 font-pixel text-[7.5px] text-[#88c070] text-center">
+              NEXT DAILY PACK: {cooldown.formattedTime}
             </div>
           )}
-
-          {/* 3. Admin Instant Open Pass */}
-          <button
-            onClick={() => onOpenPack(true)}
-            disabled={packStage === 'tearing'}
-            title="Instant Open Pass: Open unlimited packs without consuming cooldown"
-            className="pkmn-btn pkmn-btn-red px-3.5 py-2 text-[10px] sm:text-xs flex items-center gap-1.5"
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-yellow-300" />
-            <span>ADMIN: FREE OPEN</span>
-          </button>
         </div>
       </div>
     </div>

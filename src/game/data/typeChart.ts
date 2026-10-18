@@ -48,7 +48,51 @@ export const TYPE_COLORS: Record<PokemonType, { bg: string; text: string; border
   Fairy: { bg: 'bg-pink-400', text: 'text-pink-950', border: 'border-pink-300' },
 };
 
-// Official Sprite CDN from PokeAPI (clean, high quality, free)
+// Canonical 4-character Gen 3 GBA Type Plate abbreviations
+export const TYPE_ABBR: Record<PokemonType, string> = {
+  Normal: 'NORM',
+  Fire: 'FIRE',
+  Water: 'WATR',
+  Grass: 'GRAS',
+  Electric: 'ELEC',
+  Ice: 'ICE',
+  Fighting: 'FGHT',
+  Poison: 'POIS',
+  Ground: 'GRND',
+  Flying: 'FLY',
+  Psychic: 'PSYC',
+  Bug: 'BUG',
+  Rock: 'ROCK',
+  Ghost: 'GHST',
+  Dragon: 'DRGN',
+  Dark: 'DARK',
+  Steel: 'STEL',
+  Fairy: 'FAIR',
+};
+
+// Authentic Gen 3 GBA Type Plate hex colors
+export const GBA_TYPE_COLORS: Record<PokemonType, { bg: string; text: string; border: string }> = {
+  Normal: { bg: '#a8a878', text: '#081820', border: '#6d6d4e' },
+  Fire: { bg: '#f08030', text: '#e0f8d0', border: '#9c531f' },
+  Water: { bg: '#6890f0', text: '#e0f8d0', border: '#445e9c' },
+  Grass: { bg: '#78c850', text: '#081820', border: '#4e8234' },
+  Electric: { bg: '#f8d030', text: '#081820', border: '#a1871f' },
+  Ice: { bg: '#98d8d8', text: '#081820', border: '#638d8d' },
+  Fighting: { bg: '#c03028', text: '#e0f8d0', border: '#7d1f1a' },
+  Poison: { bg: '#a040a0', text: '#e0f8d0', border: '#682a68' },
+  Ground: { bg: '#e0c068', text: '#081820', border: '#927d44' },
+  Flying: { bg: '#a890f0', text: '#081820', border: '#6d5e9c' },
+  Psychic: { bg: '#f85888', text: '#e0f8d0', border: '#a13959' },
+  Bug: { bg: '#a8b820', text: '#081820', border: '#6d7815' },
+  Rock: { bg: '#b8a038', text: '#081820', border: '#786824' },
+  Ghost: { bg: '#705898', text: '#e0f8d0', border: '#493963' },
+  Dragon: { bg: '#7038f8', text: '#e0f8d0', border: '#4924a1' },
+  Dark: { bg: '#705848', text: '#e0f8d0', border: '#49392f' },
+  Steel: { bg: '#b8b8d0', text: '#081820', border: '#787887' },
+  Fairy: { bg: '#ee99ac', text: '#081820', border: '#9b6470' },
+};
+
+// Official Sprite CDN from PokeAPI (uniform static 96x96 pixel art PNGs for all generations)
 export const getSpriteUrl = (dexNumber: number, back = false): string => {
   if (back) {
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${dexNumber}.png`;
@@ -68,7 +112,10 @@ export const getOfficialArtworkUrl = (dexNumber: number): string => {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dexNumber}.png`;
 };
 
-// Generation 3 GBA (Emerald / FireRed) pixel sprites
+// Uniform static pixel sprites (uses Emerald for <=386, static PokeAPI pixel PNG for >386 so it never falls back to animated GIFs)
 export const getGen3SpriteUrl = (dexNumber: number): string => {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iii/emerald/${dexNumber}.png`;
+  if (dexNumber <= 386) {
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iii/emerald/${dexNumber}.png`;
+  }
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexNumber}.png`;
 };

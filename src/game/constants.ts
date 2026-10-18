@@ -5,8 +5,8 @@
 
 // Barrel export for all game data modules
 export * from './data/typeChart';
+export * from './data/moveMechanicsKB';
 export * from './data/teams';
 export * from './data/cosmetics';
 export * from './data/trainerRegistry';
-export * from './data/scenes';
 export * from './types';

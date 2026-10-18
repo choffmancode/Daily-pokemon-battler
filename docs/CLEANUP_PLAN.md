@@ -32,3 +32,7 @@ This plan addresses performance and architectural hygiene across the turn-based 
 - Delete multiplayer roadmap and matchmaking artifacts.
 - Prohibit any Bag menu or in-combat inventory button.
 - Clean rewrite of legacy modern UI rather than superficial restyling.
+
+## 7. Follow-Up UI State Cleanup Notes
+- **Pre-Battle Step Transition (`TeamSelectorModal.tsx`)**: Selecting a different team card updates `selectedTeamId` in parent `App.tsx`; ensure the modal's `useEffect` initialization only runs when `isOpen` opens (not when `selectedTeamId` changes mid-flow) so transitioning from `TODAY'S TEAMS` (`step === 'teams'`) to `CHOOSE YOUR LEAD` (`step === 'lead'`) never resets `step` back to `'teams'`.
+

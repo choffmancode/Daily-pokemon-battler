@@ -25,6 +25,26 @@ export type PokemonType =
 
 export type MoveCategory = 'Physical' | 'Special' | 'Status';
 
+export type StatKey = 'hp' | 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed';
+
+export type StatusCondition = 'paralysis' | 'burn' | 'poison' | 'toxic' | 'sleep' | 'freeze';
+
+export type WeatherType = 'Clear' | 'Hail' | 'Rain' | 'Sun' | 'Sand';
+
+export interface StatChangeSpec {
+  stat: StatKey;
+  stages: number;
+  target?: 'self' | 'opponent';
+}
+
+export interface SecondaryEffectSpec {
+  chance: number; // 0 - 100
+  statusEffect?: StatusCondition;
+  statChange?: StatChangeSpec;
+  statChanges?: StatChangeSpec[];
+  flinchChance?: number; // 0 - 100 (or uses chance if flinch is the primary secondary effect)
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -36,8 +56,17 @@ export interface Move {
   maxPp: number;
   priority?: number; // default 0
   description: string;
-  statusEffect?: 'paralysis' | 'burn' | 'poison' | 'sleep' | 'freeze';
-  statChange?: { stat: 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed'; stages: number };
+  statusEffect?: StatusCondition;
+  statChange?: StatChangeSpec;
+  statChanges?: StatChangeSpec[];
+  secondaryEffect?: SecondaryEffectSpec;
+  recoil?: number; // fraction of damage dealt, e.g. 0.25 or 0.33
+  drain?: number; // fraction of damage dealt healed, e.g. 0.5
+  multiHit?: [number, number]; // [minHits, maxHits], e.g. [2, 5]
+  critRatioBonus?: number; // +1 for high-crit moves (Night Slash, Stone Edge, etc.)
+  isProtect?: boolean; // Protect / Detect
+  isSubstitute?: boolean; // Substitute
+  weatherEffect?: WeatherType;
 }
 
 export interface PokemonStats {
@@ -63,8 +92,14 @@ export interface Pokemon {
   spriteBack: string;
   ability: string;
   abilityDescription: string;
-  statusCondition?: 'paralysis' | 'burn' | 'poison' | 'sleep' | 'freeze' | null;
+  statusCondition?: StatusCondition | null;
+  sleepTurns?: number;
+  toxicCounter?: number;
+  substituteHp?: number;
+  isProtected?: boolean;
+  protectStreak?: number;
   statStages?: {
+    hp?: number;
     attack: number;
     defense: number;
     spAtk: number;
@@ -109,7 +144,7 @@ export interface BattleTurnLog {
 
 export interface BattleState {
   turnNumber: number;
-  weather: 'Clear' | 'Hail' | 'Rain' | 'Sun';
+  weather: WeatherType;
   weatherTurnsRemaining: number;
   playerActiveIndex: number;
   opponentActiveIndex: number;
@@ -249,18 +284,8 @@ export interface OpponentTrainer {
   title: string;
   location: string;
   dialogue: string;
-  weather: 'Clear' | 'Hail' | 'Rain' | 'Sun';
+  weather: WeatherType;
   team: Pokemon[];
   badgeName?: string;
   tagline?: string;
-}
-
-export interface CozyBackgroundScene {
-  id: string;
-  title: string;
-  location: string;
-  imageUrl: string;
-  moodColor: string;
-  accentBadge: string;
-  description: string;
 }

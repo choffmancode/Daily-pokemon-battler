@@ -45,36 +45,18 @@ const TrainerBattleSpriteComponent: React.FC<TrainerBattleSpriteProps> = ({
   }[size];
 
 
-  // If Opponent: Render Legendary Champion Cynthia in authentic Gen 3 Mini Sprite
+  // If Opponent: Render Champion in the Battle Screen v4 emerald-coat & silver-hair GBA pixel sprite
   if (isOpponent) {
-    const cynthiaConfig: EquippedTrainerConfig = {
-      baseId: 'cynthia_sinnoh',
-      head: 'card_cynthia_hairpins',
-    };
-
     return (
       <div
         className={`relative flex flex-col items-center select-none ${className}`}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-        title="Champion Cynthia: 'Before you stands the Sinnoh Champion. Show me your bond!'"
+        title="Champion Cynthia"
       >
-        {/* Dialogue Bubble */}
-        <div className="absolute -top-6 right-0 px-2 py-0.5 rounded-full bg-slate-900/95 border border-amber-400/80 text-[8px] font-pixel text-amber-300 shadow-xl whitespace-nowrap z-30">
-          Show me your bond!
-        </div>
-
-        {/* Sinnoh Champion Golden Mote */}
-        <div className="absolute -top-1 left-2 w-1.5 h-1.5 rounded-full bg-amber-300/60 blur-[0.5px] animate-ping pointer-events-none" />
-
-        {/* Champion Cynthia Authentic Mini Sprite */}
-        <div className={`relative ${sizeClasses} filter drop-shadow-[0_6px_8px_rgba(0,0,0,0.7)] group cursor-pointer transition-transform duration-150 active:scale-95`}>
-          <MiniTrainerSVG config={cynthiaConfig} posture="idle" />
-        </div>
-
-        <div className="text-[7.5px] font-pixel text-amber-400 mt-0.5 tracking-wider font-semibold">
-          CHAMPION CYNTHIA
-        </div>
+        <img
+          src="/sprites/trainers/champion_battle.png"
+          alt="Champion"
+          className="w-10 h-20 xs:w-11 xs:h-22 sm:w-12 sm:h-24 object-contain pixelated drop-shadow-[1px_2px_0_#081820] select-none"
+        />
       </div>
     );
   }

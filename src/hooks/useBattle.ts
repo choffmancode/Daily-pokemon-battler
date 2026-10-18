@@ -96,6 +96,9 @@ export function useBattle({
     setLiveCombatLog(battleState.combatLog);
     setMidTurnPlayerHp(null);
     setMidTurnOpponentHp(null);
+    if (battleState.phase === 'faint_switch_player') {
+      setSelectedSubMenu('switch');
+    }
   }, [battleState]);
 
   // Pokémon Showdown Move Animation & Damage States
@@ -194,6 +197,9 @@ export function useBattle({
         addTimeout(() => {
           onUpdateBattle(nextState);
           setIsTurnProcessing(false);
+          if (nextState.phase === 'faint_switch_player') {
+            setSelectedSubMenu('switch');
+          }
         }, 500);
         return;
       }
@@ -380,10 +386,13 @@ export function useBattle({
                   }
                 }, 550);
               } else {
-                // Both Pokémon survived attacks; finalize state (weather residuals resolve)
+                // Both Pokémon survived initial hits; finalize state (recoil/weather/status residuals resolve)
                 setLiveCombatLog(nextState.combatLog);
                 onUpdateBattle(nextState);
                 setIsTurnProcessing(false);
+                if (nextState.phase === 'faint_switch_player') {
+                  setSelectedSubMenu('switch');
+                }
               }
             }, 620);
           }, 240);
@@ -392,46 +401,58 @@ export function useBattle({
           setLiveCombatLog(nextState.combatLog);
           onUpdateBattle(nextState);
           setIsTurnProcessing(false);
+          if (nextState.phase === 'faint_switch_player') {
+            setSelectedSubMenu('switch');
+          }
         }
       }, 620);
     },
     [isTurnProcessing, battleState, playerMon, opponentMon, onUpdateBattle]
   );
 
-  // Handle switching Pokémon
+  // Handle switching Pokémon (Free replacement when fainted, or full turn when switching mid-battle)
   const handleSwitchPokemon = useCallback(
     (targetIndex: number) => {
       if (isTurnProcessing || targetIndex === battleState.playerActiveIndex) return;
 
       const target = battleState.playerTeam[targetIndex];
-      if (target.fainted || target.currentHp <= 0) return;
+      if (!target || target.fainted || target.currentHp <= 0) return;
 
       setIsTurnProcessing(true);
       soundFX.playSelect();
 
-      // Clear any existing animations
+      // Clear any existing animations and mid-turn HP overrides
       setPlayerAnimClass('');
       setOpponentAnimClass('');
       setActiveVFX(null);
       setFloatingDamage(null);
+      setMidTurnPlayerHp(null);
+      setMidTurnOpponentHp(null);
 
-      const aiAction = selectAIMoveOrSwitch(opponentMon, playerMon, battleState.opponentTeam);
+      const isPostFaintSwitch =
+        battleState.phase === 'faint_switch_player' || rawPlayerMon.fainted || rawPlayerMon.currentHp <= 0;
+
+      // On a post-faint replacement switch, the opponent does not get a free attack
+      const aiAction = isPostFaintSwitch
+        ? { type: 'switch' as const, targetPokemonIndex: battleState.opponentActiveIndex }
+        : selectAIMoveOrSwitch(opponentMon, target, battleState.opponentTeam);
+
       const nextState = executeBattleTurn(
         battleState,
         { type: 'switch', targetPokemonIndex: targetIndex },
         aiAction
       );
 
-      // Flash switch & update state
+      // Update combat log & state
       setLiveCombatLog(nextState.combatLog);
       onUpdateBattle(nextState);
 
-      setTimeout(() => {
+      addTimeout(() => {
         setIsTurnProcessing(false);
-        setSelectedSubMenu('moves');
-      }, 400);
+        setSelectedSubMenu(nextState.phase === 'faint_switch_player' ? 'switch' : 'moves');
+      }, 350);
     },
-    [isTurnProcessing, battleState, opponentMon, playerMon, onUpdateBattle]
+    [isTurnProcessing, battleState, rawPlayerMon, opponentMon, onUpdateBattle]
   );
 
   // Keyboard shortcut listener

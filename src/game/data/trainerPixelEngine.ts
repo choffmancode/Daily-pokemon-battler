@@ -867,7 +867,12 @@ export function compositeTrainerPixels(
 ): CompositeResult {
   const cacheKey = `${config.baseId || ''}:${config.head || ''}:${config.outfit || ''}:${config.backpack || ''}:${config.shoes || ''}:${config.badge || ''}:${config.aura || ''}:${posture}`;
   const cached = COMPOSITE_CACHE.get(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    // True LRU promotion
+    COMPOSITE_CACHE.delete(cacheKey);
+    COMPOSITE_CACHE.set(cacheKey, cached);
+    return cached;
+  }
 
   const validation = validateTrainerSprite(config);
 
@@ -989,10 +994,23 @@ export function compilePixelRects(
   rows: string[],
   paletteOverrides?: Record<string, string>
 ): PixelRect[] {
-  const paletteKey = paletteOverrides ? JSON.stringify(paletteOverrides) : 'default';
+  let paletteKey = 'default';
+  if (paletteOverrides) {
+    const keys = Object.keys(paletteOverrides);
+    let acc = '';
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      acc += `${k}=${paletteOverrides[k]};`;
+    }
+    paletteKey = acc || 'default';
+  }
   const cacheKey = `${rows.join(':')}|${paletteKey}`;
   const cached = RECT_CACHE.get(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    RECT_CACHE.delete(cacheKey);
+    RECT_CACHE.set(cacheKey, cached);
+    return cached;
+  }
 
   const activePalette = paletteOverrides
     ? { ...GBA_PALETTE, ...paletteOverrides }

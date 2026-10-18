@@ -29,13 +29,35 @@
 
   /* HP Gauge Colors */
   --pkmn-hp-high: #88c070;
-  --pkmn-hp-mid: #88c070;
+  --pkmn-hp-mid: #f8b820;
   --pkmn-hp-low: #a84040;
-  --pkmn-exp-bar: #88c070;
 }
 
 /* ==========================================================================
-   1. AUTHENTIC DOUBLE-LINED GBA FRAMES
+   1. TALL CONDENSED GBA PIXEL DISPLAY TYPOGRAPHY
+   ========================================================================== */
+
+.gba-title-text {
+  display: inline-block;
+  transform: scaleY(1.32);
+  transform-origin: center;
+  letter-spacing: 0.02em;
+}
+
+.gba-btn-text {
+  display: inline-block;
+  transform: scaleY(1.28);
+  transform-origin: center;
+  letter-spacing: 0.01em;
+}
+
+.gba-condensed-body {
+  letter-spacing: -0.06em;
+  word-spacing: -0.12em;
+}
+
+/* ==========================================================================
+   2. AUTHENTIC DOUBLE-LINED CHAMFERED GBA FRAMES
    ========================================================================== */
 
 /* Dark GBA Panel (Deep Background #081820, Outer #306850, Inner #88c070) */
@@ -43,8 +65,7 @@
 .pkmn-frame-dark {
   background-color: #081820;
   border: 3px solid #306850;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 2px #88c070;
+  box-shadow: inset 0 0 0 2px #88c070, 0 0 0 2px #081820;
   color: #e0f8d0;
   position: relative;
 }
@@ -53,9 +74,8 @@
 .gba-frame-cream,
 .pkmn-frame-cream {
   background-color: #e0f8d0;
-  border: 3px solid #306850;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 2px #88c070;
+  border: 3px solid #243820;
+  box-shadow: inset 0 0 0 2px #688850, inset 0 0 0 4px #243820;
   color: #081820;
   position: relative;
 }
@@ -63,16 +83,121 @@
 /* Primary Green Panel (#306850) */
 .gba-frame-green,
 .pkmn-frame-gold {
-  background-color: #306850;
-  border: 3px solid #081820;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 2px #88c070;
+  background-color: #183828;
+  border: 3px solid #e0f8d0;
+  box-shadow: inset 0 0 0 2px #081820, inset 0 0 0 4px #88c070, 0 0 0 2px #306850;
   color: #e0f8d0;
   position: relative;
 }
 
+/* Reference 2: Today's Teams Light Sage Scanline Background */
+.gba-sage-bg {
+  background-color: #9ebc70;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.08) 0px,
+    rgba(255, 255, 255, 0.08) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* Reference 2: Double-Lined Cream Team Archetype Card */
+.gba-team-card {
+  background-color: #e0f0c8;
+  border: 3px solid #20341c;
+  box-shadow:
+    inset 0 0 0 2px #789858,
+    inset 0 0 0 4px #20341c,
+    0 2px 0 #20341c;
+  color: #081820;
+  position: relative;
+}
+
+/* Reference 2: Tactile Cream SELECT Button */
+.gba-select-btn {
+  font-family: 'Press Start 2P', monospace;
+  background-color: #e0f0c8;
+  border: 2.5px solid #20341c;
+  box-shadow:
+    inset 0 0 0 2px #88a868,
+    inset 0 0 0 3.5px #20341c,
+    0 2px 0 #20341c;
+  color: #081820;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gba-select-btn:hover:not(:disabled) {
+  background-color: #ecf8d8;
+}
+
+.gba-select-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 0 0 2px #88a868,
+    inset 0 0 0 3.5px #20341c,
+    0 1px 0 #20341c;
+}
+
+/* Reference 3: Choose Your Lead Tan Parchment Background */
+.gba-parchment-bg {
+  background-color: #cbb98c;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06) 0px,
+    rgba(255, 255, 255, 0.06) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* Reference 3: Dark Olive Party Slot Row */
+.gba-party-slot {
+  background-color: #34442c;
+  border: 2.5px solid #182418;
+  box-shadow:
+    inset 0 0 0 2px #b8c49c,
+    inset 0 0 0 3.5px #506040;
+  color: #e0f8d0;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.gba-party-slot:hover {
+  background-color: #3c4e32;
+}
+
+.gba-party-slot-active {
+  background-color: #384a30;
+  border-color: #081820;
+  box-shadow:
+    inset 0 0 0 2px #e0f8d0,
+    inset 0 0 0 3.5px #88c070;
+}
+
+/* Canonical 4-Character GBA Type Plate */
+.gba-type-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 13px;
+  padding: 0 3px;
+  border: 1px solid #081820;
+  border-radius: 2px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 /* ==========================================================================
-   2. GBA RETRO BUTTONS (DOUBLE-LINED, THUMB-ZONE FRIENDLY)
+   3. GBA RETRO BUTTONS (DOUBLE-LINED, THUMB-ZONE FRIENDLY)
    ========================================================================== */
 
 .gba-btn,
@@ -80,7 +205,6 @@
   font-family: 'Press Start 2P', monospace;
   background-color: #306850;
   border: 2px solid #081820;
-  border-radius: 6px;
   box-shadow: inset 0 0 0 2px #88c070;
   color: #e0f8d0;
   padding: 8px 12px;
@@ -110,52 +234,30 @@
   cursor: not-allowed;
 }
 
-/* Cream Button (Light Background) */
 .gba-btn-cream {
   background-color: #e0f8d0;
   border: 2px solid #306850;
-  border-radius: 6px;
   box-shadow: inset 0 0 0 2px #88c070;
   color: #081820;
 }
 
-.gba-btn-cream:hover:not(:disabled) {
-  background-color: #f0ffea;
-}
-
-/* Accent Red Action/Warning Button */
 .gba-btn-red,
 .pkmn-btn-red {
   background-color: #a84040;
   border: 2px solid #081820;
-  border-radius: 6px;
   box-shadow: inset 0 0 0 2px #e0f8d0;
   color: #e0f8d0;
 }
 
-.gba-btn-red:hover:not(:disabled),
-.pkmn-btn-red:hover:not(:disabled) {
-  background-color: #bd4c4c;
-}
-
-/* Aliases for legacy button classes */
 .pkmn-btn-blue,
 .pkmn-btn-gold,
 .pkmn-btn-emerald {
   background-color: #306850;
   border: 2px solid #081820;
-  border-radius: 6px;
   box-shadow: inset 0 0 0 2px #88c070;
   color: #e0f8d0;
 }
 
-.pkmn-btn-blue:hover:not(:disabled),
-.pkmn-btn-gold:hover:not(:disabled),
-.pkmn-btn-emerald:hover:not(:disabled) {
-  background-color: #3c7d62;
-}
-
-/* Classic Circular GBA A & B Badges */
 .pkmn-btn-round-a,
 .pkmn-btn-round-b {
   width: 28px;
@@ -186,41 +288,30 @@
 }
 
 /* ==========================================================================
-   3. STRATEGY TAGS & HANKO SEALS
+   4. STRATEGY TAGS & HANKO SEALS
    ========================================================================== */
-.gba-tag-red {
+.gba-tag-red,
+.gba-hanko-seal {
   border: 2px solid #a84040;
   color: #a84040;
-  background: transparent;
+  background: #e0f8d0;
   font-family: 'Press Start 2P', monospace;
   white-space: nowrap;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 5px;
 }
 
 /* ==========================================================================
-   4. OUTERMOST SCREEN BORDER (UKİYO-E WAVE APPLIED ONLY TO OUTER FRAME)
-   Never inside battle arena, moves, or HP bars!
+   5. OUTERMOST SCREEN BORDER
    ========================================================================== */
 .gba-screen-border {
-  border: 4px solid #306850;
-  box-shadow: inset 0 0 0 2px #88c070;
+  border: 3px solid #306850;
+  box-shadow: inset 0 0 0 2px #081820, inset 0 0 0 4px #306850;
   position: relative;
   background-color: #081820;
 }
 
-.gba-outer-wave {
-  background-image: radial-gradient(circle at 100% 150%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
-    radial-gradient(circle at 0 150%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
-    radial-gradient(circle at 50% 100%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
-    radial-gradient(circle at 100% 50%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
-    radial-gradient(circle at 0 50%, rgba(136, 192, 112, 0.05) 24%, transparent 25%);
-  background-size: 32px 16px;
-  pointer-events: none;
-}
-
 /* ==========================================================================
-   5. BATTLE PEDESTAL & HP BAR GAUGES
+   6. BATTLE PEDESTAL & HP BAR GAUGES
    ========================================================================== */
 .pkmn-battle-arena-standard {
   background-color: #081820;
@@ -240,7 +331,6 @@
 .pkmn-hp-frame {
   background: #081820;
   border: 2px solid #306850;
-  border-radius: 4px;
   padding: 2px;
 }
 
@@ -251,12 +341,11 @@
   font-size: 7px;
   font-weight: 700;
   padding: 1px 3px;
-  border-radius: 2px;
   line-height: 1;
 }
 
 /* ==========================================================================
-   6. SHOWDOWN ACTION FEED (COMPACT, ALWAYS VISIBLE)
+   7. SHOWDOWN ACTION FEED
    ========================================================================== */
 .pkmn-feed-scrollbar {
   scrollbar-width: thin;
@@ -305,6 +394,18 @@
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
   color: #88c070;
+}
+
+/* Stage-only subtle tremor for damage impact */
+@keyframes stageCameraShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-3px, 2px, 0); }
+  50% { transform: translate3d(3px, -2px, 0); }
+  75% { transform: translate3d(-2px, -1px, 0); }
+}
+
+.camera-shake-stage {
+  animation: stageCameraShake 0.25s ease-in-out;
 }
 
 /* Strict Pixel Rendering */

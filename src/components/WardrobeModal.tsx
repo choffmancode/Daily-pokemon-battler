@@ -1401,75 +1401,74 @@ export const WardrobeModal: React.FC<WardrobeModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#081820]/95 gba-outer-wave gba-scanlines overflow-hidden select-none"
       role="dialog"
       aria-modal="true"
       aria-label="Cosmetics Wardrobe and Fitting Room"
     >
-      <div className="relative w-full max-w-6xl h-[92vh] sm:h-[88vh] rounded-2xl pkmn-frame-dark p-3 sm:p-5 text-slate-100 flex flex-col shadow-2xl overflow-hidden border border-slate-700/80">
+      <div className="relative z-10 w-full max-w-6xl h-[94dvh] sm:h-[90dvh] gba-frame-emerald p-3 sm:p-4 text-[#e0f8d0] flex flex-col shadow-2xl overflow-hidden">
         {/* Header Ribbon */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3 shrink-0">
+        <div className="flex items-center justify-between pb-2.5 border-b-2 border-[#306850] mb-2.5 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg pkmn-btn-emerald flex items-center justify-center text-white shadow-md shrink-0">
-              <Shirt className="w-4 h-4" />
-            </div>
+            <span className="gba-hanko-seal text-[10px] px-1.5 py-0.5 font-bold shrink-0">装</span>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xs sm:text-base font-bold text-white font-pixel uppercase tracking-wide">
-                  COSMETICS LOCKER & FITTING ROOM
+                <h2 className="gba-title-text text-[13px] sm:text-[16px] font-bold text-[#e0f8d0] uppercase tracking-wider">
+                  ◇ COLLECTION &amp; FITTING ROOM ◇
                 </h2>
-                <span className="text-[9px] px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700 font-pixel whitespace-nowrap">
+                <span className="font-pixel text-[7px] px-2 py-0.5 bg-[#081820] text-[#88c070] border border-[#88c070] whitespace-nowrap">
                   {inventory.unlockedCardIds.length}/{COSMETIC_CARDS_CATALOG.length} UNLOCKED
                 </span>
               </div>
-              <p className="hidden sm:block text-[10px] text-slate-400 font-pixel mt-0.5">
-                Customize your Gen 3 Trainer Avatar, Pokémon Battle Turf Auras & Combat Flares
+              <p className="hidden sm:block font-pixel text-[7.5px] text-[#88c070] mt-0.5 uppercase">
+                CUSTOMIZE YOUR GEN 3 TRAINER AVATAR, POKÉMON AURAS &amp; COMBAT FLARES
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               onClose();
             }}
             aria-label="Close Wardrobe"
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer shrink-0"
+            className="gba-select-btn px-2.5 py-1 font-pixel text-[8px] cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            [BACK]
           </button>
         </div>
 
         {/* Mobile View Switcher (Browse Items vs Dressing Mirror) */}
-        <div className="md:hidden flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 mb-2 shrink-0">
+        <div className="md:hidden grid grid-cols-2 gap-1.5 mb-2 shrink-0">
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               setMobileMode('catalog');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-[10px] font-pixel flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`py-1.5 gba-title-text text-[10px] font-bold border-2 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               mobileMode === 'catalog'
-                ? 'pkmn-btn-blue text-white shadow font-bold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#e0f8d0] text-[#081820] border-[#88c070]'
+                : 'bg-[#081820] text-[#88c070] border-[#306850]'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
-            <span>ITEMS CATALOG ({filteredCards.length})</span>
+            <span>▶ CATALOG ({filteredCards.length})</span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               soundFX.playSelect();
               setMobileMode('mirror');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-[10px] font-pixel flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`py-1.5 gba-title-text text-[10px] font-bold border-2 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               mobileMode === 'mirror'
-                ? 'pkmn-btn-gold text-slate-950 shadow font-bold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#e0f8d0] text-[#081820] border-[#88c070]'
+                : 'bg-[#081820] text-[#88c070] border-[#306850]'
             }`}
           >
-            <Eye className="w-3.5 h-3.5" />
-            <span>DRESSING MIRROR</span>
+            <span>▶ DRESSING MIRROR</span>
           </button>
         </div>
 
