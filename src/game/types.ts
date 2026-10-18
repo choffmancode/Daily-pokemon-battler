@@ -1,0 +1,266 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export type PokemonType =
+  | 'Normal'
+  | 'Fire'
+  | 'Water'
+  | 'Electric'
+  | 'Grass'
+  | 'Ice'
+  | 'Fighting'
+  | 'Poison'
+  | 'Ground'
+  | 'Flying'
+  | 'Psychic'
+  | 'Bug'
+  | 'Rock'
+  | 'Ghost'
+  | 'Dragon'
+  | 'Steel'
+  | 'Dark'
+  | 'Fairy';
+
+export type MoveCategory = 'Physical' | 'Special' | 'Status';
+
+export interface Move {
+  id: string;
+  name: string;
+  type: PokemonType;
+  category: MoveCategory;
+  power: number; // 0 for status
+  accuracy: number; // 0 - 100
+  pp: number;
+  maxPp: number;
+  priority?: number; // default 0
+  description: string;
+  statusEffect?: 'paralysis' | 'burn' | 'poison' | 'sleep' | 'freeze';
+  statChange?: { stat: 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed'; stages: number };
+}
+
+export interface PokemonStats {
+  hp: number;
+  attack: number;
+  defense: number;
+  spAtk: number;
+  spDef: number;
+  speed: number;
+}
+
+export interface Pokemon {
+  id: string;
+  species: string;
+  nationalDex: number;
+  types: PokemonType[];
+  level: number;
+  baseStats: PokemonStats;
+  currentHp: number;
+  maxHp: number;
+  moves: Move[];
+  spriteFront: string;
+  spriteBack: string;
+  ability: string;
+  abilityDescription: string;
+  statusCondition?: 'paralysis' | 'burn' | 'poison' | 'sleep' | 'freeze' | null;
+  statStages?: {
+    attack: number;
+    defense: number;
+    spAtk: number;
+    spDef: number;
+    speed: number;
+  };
+  fainted: boolean;
+  equippedCosmetics?: {
+    head?: string;
+    accessory?: string;
+    aura?: string;
+  };
+}
+
+export interface TeamPreset {
+  id: string;
+  name: string;
+  tagline: string;
+  difficulty: 'Beginner Friendly' | 'Intermediate' | 'Strategic';
+  description: string;
+  recommendedLead: string;
+  team: Pokemon[];
+  colorTheme: string;
+}
+
+export type BattleActionType = 'move' | 'switch' | 'forfeit';
+
+export interface BattleAction {
+  type: BattleActionType;
+  moveIndex?: number;
+  targetPokemonIndex?: number;
+}
+
+export interface BattleTurnLog {
+  id: string;
+  turn: number;
+  actor: 'player' | 'opponent' | 'system' | 'weather';
+  message: string;
+  type?: 'damage' | 'status' | 'faint' | 'switch' | 'effectiveness' | 'weather' | 'crit';
+  effectiveness?: number;
+}
+
+export interface BattleState {
+  turnNumber: number;
+  weather: 'Clear' | 'Hail' | 'Rain' | 'Sun';
+  weatherTurnsRemaining: number;
+  playerActiveIndex: number;
+  opponentActiveIndex: number;
+  playerTeam: Pokemon[];
+  opponentTeam: Pokemon[];
+  isPlayerTurn: boolean;
+  phase: 'action_select' | 'animating' | 'faint_switch_player' | 'faint_switch_opponent' | 'battle_over';
+  winner?: 'player' | 'opponent' | null;
+  combatLog: BattleTurnLog[];
+  lastMoveUsed?: {
+    moveName: string;
+    userSide: 'player' | 'opponent';
+    targetSide: 'player' | 'opponent';
+    damageDealt: number;
+    isCrit: boolean;
+    effectiveness: number;
+  };
+  turnMoves?: Array<{
+    moveName: string;
+    moveType?: PokemonType;
+    moveCategory?: 'Physical' | 'Special' | 'Status';
+    userSide: 'player' | 'opponent';
+    targetSide: 'player' | 'opponent';
+    damageDealt: number;
+    isCrit: boolean;
+    effectiveness: number;
+    defenderHpRemaining: number;
+    defenderFainted?: boolean;
+  }>;
+  protocolLog?: string[];
+}
+
+/* =================== GACHA & COSMETICS SYSTEM =================== */
+
+export type CosmeticSlot =
+  | 'trainer_head'
+  | 'trainer_outfit'
+  | 'trainer_backpack'
+  | 'trainer_shoes'
+  | 'trainer_badge'
+  | 'trainer_aura'
+  | 'pokemon_aura'
+  | 'pokeball_effect'
+  | 'screen_flare'
+  | 'title_card';
+
+export type CosmeticRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Secret Rare';
+
+export interface CosmeticItem {
+  id: string;
+  name: string;
+  cardNumber: string; // e.g. "014/050"
+  slot: CosmeticSlot;
+  slotLabel: string; // "Trainer Headwear", "Trainer Outfit", "Trainer Backpack", "Trainer Shoes", etc.
+  wearableOn: 'Trainer' | 'All Pokémon' | 'Battle Arena' | 'Pikachu' | 'Charizard' | 'Blastoise' | 'Venusaur' | 'Snorlax' | 'Espeon';
+  rarity: CosmeticRarity;
+  description: string;
+  flavorText: string;
+  iconName: string;
+  colorGradient: string;
+  previewGraphic: string; // Gen3SpriteId or SVG snippet
+  imageUrl?: string; // Real image asset
+  bonusTitle?: string;
+  kanjiSeal?: string; // Ukiyo-e Hanko stamp glyph
+  ukiyoeStyle?: string; // Woodblock print art style subtitle
+  dropRatePercent: number;
+}
+
+export interface GachaPack {
+  id: string;
+  name: string;
+  series: string;
+  packArtColor: string;
+  accentColor: string;
+  description: string;
+  cardsCount: number;
+}
+
+export type TrainerBaseId =
+  | 'brendan_emerald'
+  | 'may_emerald'
+  | 'brendan_rs'
+  | 'may_rs'
+  | 'red_fr'
+  | 'leaf_lg'
+  | 'cynthia_sinnoh';
+
+export interface DailyBattleStats {
+  played: number;
+  wins: number;
+  currentStreak: number;
+  maxStreak: number;
+  lastPlayedDate: string; // YYYY-MM-DD
+  todayCompleted: boolean;
+  todayWon: boolean;
+  todayTurns: number;
+}
+
+export interface EquippedTrainerConfig {
+  baseId?: TrainerBaseId;
+  head?: string;
+  outfit?: string;
+  backpack?: string;
+  shoes?: string;
+  badge?: string;
+  aura?: string;
+  // Custom Studio / Workshop Color Tinting & Feature tweaks
+  customPalette?: {
+    skin?: string;
+    hair?: string;
+    hatColor?: string;
+    shirtColor?: string;
+    pantsColor?: string;
+    shoesColor?: string;
+  };
+}
+
+export interface UserCosmeticInventory {
+  unlockedCardIds: string[];
+  equippedTrainer: EquippedTrainerConfig;
+  equippedPokemon: Record<string, {
+    aura?: string;
+    titleCard?: string;
+  }>;
+  activeTitleCard?: string; // Active HP bar & level collectible title card
+  ballEffect?: string; // Active Pokéball entrance animation
+  screenFlare?: string; // Active critical/impact screen flare
+  stardust: number;
+  availablePacks: number;
+  lastDailyClaimTime: number; // timestamp
+  streakDays: number;
+}
+
+export interface OpponentTrainer {
+  id: string;
+  name: string;
+  title: string;
+  location: string;
+  dialogue: string;
+  weather: 'Clear' | 'Hail' | 'Rain' | 'Sun';
+  team: Pokemon[];
+  badgeName?: string;
+  tagline?: string;
+}
+
+export interface CozyBackgroundScene {
+  id: string;
+  title: string;
+  location: string;
+  imageUrl: string;
+  moodColor: string;
+  accentBadge: string;
+  description: string;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Battle Red - Daily Pokémon Showdown & Gacha",
+  "description": "Ad-free daily Pokémon Mt. Silver challenge with turn-based tactical combat, beginner-friendly team synergies, daily booster pack gacha cosmetics, and multiplayer matchmaking roadmap.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

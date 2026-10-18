@@ -1,0 +1,5 @@
+{
+  "summary": "Centralized technical blueprint and architecture specification for the Generation 3 Pokémon Emerald Sprite Compositor Engine, covering canvas rendering specs, strict Z-index hierarchy, anchor points, frame state anatomy, item JSON data structures, and dynamic GBA palette swapping mechanics.",
+  "updatedAt": "2026-10-16T23:12:34.728850888Z",
+  "userFacing": true
+}
