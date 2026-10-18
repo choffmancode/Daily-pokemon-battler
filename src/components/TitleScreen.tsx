@@ -16,7 +16,6 @@ interface TitleScreenProps {
   onStartBattle: () => void;
   onOpenGacha: () => void;
   onOpenWardrobe: () => void;
-  onOpenMultiplayerRoadmap: () => void;
   onOpenTeamSelect: () => void;
   selectedTeam: TeamPreset;
   inventory?: UserCosmeticInventory;
@@ -30,7 +29,6 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStartBattle,
   onOpenGacha,
   onOpenWardrobe,
-  onOpenMultiplayerRoadmap,
   onOpenTeamSelect,
   selectedTeam,
   inventory,

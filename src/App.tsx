@@ -23,9 +23,6 @@ const WardrobeModal = lazy(() =>
 const TeamSelectorModal = lazy(() =>
   import('./components/TeamSelectorModal').then((m) => ({ default: m.TeamSelectorModal }))
 );
-const MultiplayerRoadmapModal = lazy(() =>
-  import('./components/MultiplayerRoadmapModal').then((m) => ({ default: m.MultiplayerRoadmapModal }))
-);
 
 export default function App() {
   useMobileViewport(); // Handles 100dvh shifts and first-touch audio unlock
@@ -39,7 +36,6 @@ export default function App() {
   const [isGachaModalOpen, setIsGachaModalOpen] = useState<boolean>(false);
   const [isWardrobeModalOpen, setIsWardrobeModalOpen] = useState<boolean>(false);
   const [isTeamSelectModalOpen, setIsTeamSelectModalOpen] = useState<boolean>(false);
-  const [isMultiplayerRoadmapOpen, setIsMultiplayerRoadmapOpen] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
 
   // Sync state machine to document.body.dataset.state
@@ -79,13 +75,12 @@ export default function App() {
   };
 
   return (
-    <main className="w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] bg-slate-950 text-slate-100 font-sans-ui overflow-hidden overscroll-none touch-manipulation">
+    <main className="w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] bg-[#081820] text-[#e0f8d0] font-pixel overflow-hidden overscroll-none touch-manipulation">
       {gameState === 'title' ? (
         <TitleScreen
           onStartBattle={startNewBattle}
           onOpenGacha={() => setIsGachaModalOpen(true)}
           onOpenWardrobe={() => setIsWardrobeModalOpen(true)}
-          onOpenMultiplayerRoadmap={() => setIsMultiplayerRoadmapOpen(true)}
           onOpenTeamSelect={() => setIsTeamSelectModalOpen(true)}
           selectedTeam={selectedTeam}
           inventory={inventory}
@@ -137,13 +132,6 @@ export default function App() {
             onClose={() => setIsTeamSelectModalOpen(false)}
             selectedTeamId={selectedTeam.id}
             onSelectTeam={handleSelectTeam}
-          />
-        )}
-
-        {isMultiplayerRoadmapOpen && (
-          <MultiplayerRoadmapModal
-            isOpen={isMultiplayerRoadmapOpen}
-            onClose={() => setIsMultiplayerRoadmapOpen(false)}
           />
         )}
       </Suspense>

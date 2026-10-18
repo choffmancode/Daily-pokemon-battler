@@ -5,105 +5,24 @@
   .font-pixel {
     font-family: 'Press Start 2P', monospace;
   }
-  .font-sans-ui {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  }
-  .font-mono-code {
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .font-artdeco {
-    font-family: 'Cinzel', Georgia, serif;
-    letter-spacing: 0.08em;
-  }
-  .font-ukiyoe {
-    font-family: 'Shippori Mincho', 'Songti SC', serif;
-  }
-}
-
-/* Art Deco & Ukiyo-e Patterns and Accents */
-.pattern-seigaiha {
-  background-image: radial-gradient(circle at 100% 150%, rgba(212, 175, 55, 0.07) 24%, transparent 25%),
-    radial-gradient(circle at 0 150%, rgba(212, 175, 55, 0.07) 24%, transparent 25%),
-    radial-gradient(circle at 50% 100%, rgba(212, 175, 55, 0.07) 24%, transparent 25%),
-    radial-gradient(circle at 100% 50%, rgba(212, 175, 55, 0.07) 24%, transparent 25%),
-    radial-gradient(circle at 0 50%, rgba(212, 175, 55, 0.07) 24%, transparent 25%);
-  background-size: 32px 16px;
-}
-
-.pattern-artdeco-lines {
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(212, 175, 55, 0.03) 0px,
-    rgba(212, 175, 55, 0.03) 2px,
-    transparent 2px,
-    transparent 8px
-  );
-}
-
-.gold-foil-border {
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.15), 0 0 12px rgba(212, 175, 55, 0.1);
-}
-
-.gold-foil-text {
-  background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.hanko-stamp {
-  border: 2px solid #ef4444;
-  color: #ef4444;
-  background-color: rgba(239, 68, 68, 0.08);
-  font-family: 'Shippori Mincho', serif;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
-}
-
-/* Holographic foil card reflection */
-.holo-card-shine {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 25%,
-    rgba(255, 215, 0, 0.25) 50%,
-    rgba(0, 255, 255, 0.2) 75%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 200%;
-}
-
-.secret-rare-foil {
-  background: linear-gradient(
-    115deg,
-    rgba(255, 0, 128, 0.2) 0%,
-    rgba(0, 240, 255, 0.3) 30%,
-    rgba(255, 230, 0, 0.35) 60%,
-    rgba(147, 51, 234, 0.25) 100%
-  );
-  background-size: 250% 250%;
-  animation: holoShift 6s ease infinite alternate;
-}
-
-@keyframes holoShift {
-  0% { background-position: 0% 0%; }
-  100% { background-position: 100% 100%; }
-}
-
-/* Scanlines overlay for retro screen feel */
-.scanlines-overlay {
-  background: linear-gradient(
-    to bottom,
-    rgba(255,255,255,0),
-    rgba(255,255,255,0) 50%,
-    rgba(0, 0, 0, 0.25) 50%,
-    rgba(0, 0, 0, 0.25)
-  );
-  background-size: 100% 4px;
 }
 
 /* Mobile Web Game Performance & Touch Ergonomics */
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #081820;
+  color: #e0f8d0;
+  font-family: 'Press Start 2P', monospace;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overflow: hidden;
 }
 
 .pt-safe {
@@ -122,163 +41,63 @@
 .gpu-accelerated {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  perspective: 1000px;
 }
 
-.content-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 250px;
+/* Authentic GBA Scanlines & Vignette (Subtle Retro TV / GBA Overlay) */
+.scanlines-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.15)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
 }
 
 /* Pokémon Showdown Combat Animations */
 @keyframes tacklePlayer {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  35% { transform: translate3d(24px, -18px, 0) scale(1.08); }
-  60% { transform: translate3d(32px, -24px, 0) scale(1.12); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
+  0% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(20px, -14px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes tackleOpponent {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  35% { transform: translate3d(-24px, 18px, 0) scale(1.08); }
-  60% { transform: translate3d(-32px, 24px, 0) scale(1.12); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
+  0% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(-20px, 14px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
-@keyframes specialPulse {
-  0% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
-  50% { transform: scale(1.14); filter: drop-shadow(0 0 16px rgba(234, 179, 8, 0.8)) brightness(1.25); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+@keyframes takeDamageShake {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  20%, 60% { transform: translateX(-6px); filter: brightness(1.5) contrast(1.2); }
+  40%, 80% { transform: translateX(6px); filter: brightness(0.7); }
 }
 
-@keyframes damageShake {
-  0%, 100% { transform: translate3d(0, 0, 0); filter: brightness(1); }
-  20% { transform: translate3d(-8px, -4px, 0); filter: brightness(2) drop-shadow(0 0 10px #ef4444); }
-  40% { transform: translate3d(8px, 4px, 0); filter: brightness(2) drop-shadow(0 0 12px #ef4444); }
-  60% { transform: translate3d(-6px, 2px, 0); filter: brightness(1.6); }
-  80% { transform: translate3d(6px, -2px, 0); filter: brightness(1.3); }
+@keyframes faintFall {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(32px); opacity: 0; }
 }
 
-@keyframes faintSink {
-  0% { transform: translate3d(0, 0, 0); opacity: 1; filter: grayscale(0); }
-  40% { transform: translate3d(0, 10px, 0); opacity: 0.8; filter: grayscale(0.5); }
-  100% { transform: translate3d(0, 48px, 0); opacity: 0; filter: grayscale(1); }
+.animate-tackle-player {
+  animation: tacklePlayer 0.35s ease-in-out;
 }
 
-@keyframes floatDamage {
-  0% { transform: translate3d(0, 0, 0) scale(0.85); opacity: 0; }
-  25% { transform: translate3d(0, -12px, 0) scale(1.15); opacity: 1; }
-  75% { transform: translate3d(0, -28px, 0) scale(1); opacity: 0.95; }
-  100% { transform: translate3d(0, -42px, 0) scale(0.9); opacity: 0; }
+.animate-tackle-opponent {
+  animation: tackleOpponent 0.35s ease-in-out;
 }
 
-@keyframes lightningZap {
-  0% { opacity: 0; transform: scaleY(0.2); }
-  20% { opacity: 1; transform: scaleY(1.1); filter: drop-shadow(0 0 12px #38bdf8); }
-  50% { opacity: 0.7; transform: scaleY(0.95); }
-  70% { opacity: 1; transform: scaleY(1.05); }
-  100% { opacity: 0; transform: scaleY(1); }
+.animate-damage-shake {
+  animation: takeDamageShake 0.4s ease-in-out;
 }
 
-@keyframes flameBurst {
-  0% { transform: scale(0.3) rotate(0deg); opacity: 0.2; }
-  50% { transform: scale(1.25) rotate(15deg); opacity: 1; filter: drop-shadow(0 0 18px #f97316); }
-  100% { transform: scale(1.6) rotate(30deg); opacity: 0; }
+.animate-faint-fall {
+  animation: faintFall 0.6s ease-in forwards;
 }
 
-@keyframes waveSurge {
-  0% { transform: translate3d(-30px, 15px, 0) scale(0.5); opacity: 0; }
-  50% { transform: translate3d(0, 0, 0) scale(1.1); opacity: 1; filter: drop-shadow(0 0 16px #3b82f6); }
-  100% { transform: translate3d(30px, -15px, 0) scale(1.2); opacity: 0; }
+/* Crisp pixel rendering */
+img, svg, canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
-
-@keyframes leafSwirl {
-  0% { transform: rotate(0deg) scale(0.6); opacity: 0; }
-  50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
-  100% { transform: rotate(360deg) scale(1.5); opacity: 0; }
-}
-
-@keyframes psychicRings {
-  0% { transform: scale(0.2); opacity: 0.9; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-@keyframes slashCut {
-  0% { transform: scale(0.4) rotate(-35deg); opacity: 0; }
-  40% { transform: scale(1.2) rotate(-35deg); opacity: 1; filter: drop-shadow(0 0 8px #ffffff); }
-  100% { transform: scale(1.5) rotate(-35deg); opacity: 0; }
-}
-
-.anim-tackle-player {
-  animation: tacklePlayer 0.45s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-}
-
-.anim-tackle-opponent {
-  animation: tackleOpponent 0.45s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-}
-
-.anim-special-pulse {
-  animation: specialPulse 0.5s ease-in-out forwards;
-}
-
-.anim-damage-shake {
-  animation: damageShake 0.45s ease-in-out forwards;
-}
-
-.anim-faint-sink {
-  animation: faintSink 0.6s ease-in-out forwards;
-}
-
-.anim-float-damage {
-  animation: floatDamage 0.9s ease-out forwards;
-}
-
-.anim-lightning {
-  animation: lightningZap 0.4s ease-in-out forwards;
-}
-
-.anim-flame {
-  animation: flameBurst 0.45s ease-out forwards;
-}
-
-.anim-wave {
-  animation: waveSurge 0.5s ease-out forwards;
-}
-
-.anim-leaf {
-  animation: leafSwirl 0.5s ease-out forwards;
-}
-
-.anim-psychic {
-  animation: psychicRings 0.55s ease-out forwards;
-}
-
-.anim-slash {
-  animation: slashCut 0.35s ease-out forwards;
-}
-
-/* Custom scrollbar and no-scrollbar utilities for clean mobile/desktop ergonomics */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.6);
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.8);
-}
-

@@ -2,210 +2,181 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Centralized Pokémon 2000s (Gen 1-3 GBA / GBC Era) Design System & Styling Rules
- * Single source of truth for retro borders, colors, battle arena themes, and pack opening UI.
+ * Battle Cynthia — Gen 3 Game Boy Advance Design Tokens & Styling
+ * Color tokens strictly locked:
+ *   Deep background: #081820
+ *   Primary green:   #306850
+ *   Light green:     #88c070
+ *   Cream:           #e0f8d0
+ *   Accent red:      #a84040
  */
 
 :root {
-  /* Gen 1-3 Iconic Palette */
-  --pkmn-red: #ef4444;
-  --pkmn-red-dark: #b91c1c;
-  --pkmn-blue: #3b82f6;
-  --pkmn-blue-dark: #1d4ed8;
-  --pkmn-emerald: #10b981;
-  --pkmn-emerald-dark: #047857;
-  --pkmn-gold: #f59e0b;
-  --pkmn-gold-dark: #b45309;
-  
-  /* Retro Dialog & Menu Box Shades */
-  --pkmn-frame-bg: #1e293b;
-  --pkmn-frame-border: #475569;
-  --pkmn-frame-cream-bg: #f8fafc;
-  --pkmn-frame-cream-border: #334155;
-  --pkmn-text-dark: #0f172a;
-  --pkmn-text-light: #f8fafc;
-  
-  /* Classic HP Bar Gauges */
-  --pkmn-hp-high: #22c55e;
-  --pkmn-hp-mid: #eab308;
-  --pkmn-hp-low: #ef4444;
-  --pkmn-exp-bar: #38bdf8;
+  /* Locked Palette Tokens */
+  --gba-bg: #081820;
+  --gba-primary: #306850;
+  --gba-accent: #88c070;
+  --gba-cream: #e0f8d0;
+  --gba-red: #a84040;
+
+  /* Aliased System Colors */
+  --pkmn-frame-bg: #081820;
+  --pkmn-frame-border: #306850;
+  --pkmn-frame-cream-bg: #e0f8d0;
+  --pkmn-frame-cream-border: #306850;
+  --pkmn-text-dark: #081820;
+  --pkmn-text-light: #e0f8d0;
+
+  /* HP Gauge Colors */
+  --pkmn-hp-high: #88c070;
+  --pkmn-hp-mid: #88c070;
+  --pkmn-hp-low: #a84040;
+  --pkmn-exp-bar: #88c070;
 }
 
 /* ==========================================================================
-   1. RETRO POKÉMON GEN 1-3 DIALOG & MENU FRAMES (Dual-Line Inset Borders)
+   1. AUTHENTIC DOUBLE-LINED GBA FRAMES
    ========================================================================== */
 
-/* Classic GBA Dark Battle/Menu Box */
+/* Dark GBA Panel (Deep Background #081820, Outer #306850, Inner #88c070) */
+.gba-frame-dark,
 .pkmn-frame-dark {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 3px solid #334155;
-  border-radius: 12px;
-  box-shadow: 
-    inset 0 0 0 2px #64748b,
-    inset 0 2px 4px rgba(255, 255, 255, 0.1),
-    0 8px 24px rgba(0, 0, 0, 0.6);
+  background-color: #081820;
+  border: 3px solid #306850;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #e0f8d0;
   position: relative;
 }
 
-/* Classic GBA FireRed / Emerald Cream Dialog Box */
+/* Cream GBA Panel (Cream #e0f8d0, Outer #306850, Inner #88c070) */
+.gba-frame-cream,
 .pkmn-frame-cream {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  border: 4px solid #1e293b;
-  border-radius: 10px;
-  color: #0f172a;
-  box-shadow: 
-    inset 0 0 0 2px #94a3b8,
-    0 6px 18px rgba(0, 0, 0, 0.5);
+  background-color: #e0f8d0;
+  border: 3px solid #306850;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #081820;
+  position: relative;
 }
 
-/* Gold / Champion Edition Frame */
+/* Primary Green Panel (#306850) */
+.gba-frame-green,
 .pkmn-frame-gold {
-  background: linear-gradient(180deg, #1c1917 0%, #0c0a09 100%);
-  border: 3px solid #d97706;
-  border-radius: 12px;
-  box-shadow: 
-    inset 0 0 0 2px #fbbf24,
-    inset 0 0 12px rgba(245, 158, 11, 0.2),
-    0 8px 25px rgba(0, 0, 0, 0.7);
-}
-
-/* Retro Pixel Menu Bevel */
-.pkmn-pixel-box {
-  background: #111827;
-  border: 3px solid #374151;
-  box-shadow: 
-    3px 3px 0px #000000,
-    inset 2px 2px 0px rgba(255, 255, 255, 0.15);
+  background-color: #306850;
+  border: 3px solid #081820;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #e0f8d0;
+  position: relative;
 }
 
 /* ==========================================================================
-   2. RETRO GAME BOY ADVANCE 2000s BUTTON SYSTEM
+   2. GBA RETRO BUTTONS (DOUBLE-LINED, THUMB-ZONE FRIENDLY)
    ========================================================================== */
 
-/* Universal Base Button */
+.gba-btn,
 .pkmn-btn {
-  font-family: 'Press Start 2P', monospace, sans-serif;
-  letter-spacing: -0.05em;
-  border-radius: 8px;
-  border: 2px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 
-    0 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: all 0.08s ease-in-out;
-  cursor: pointer;
-  user-select: none;
+  font-family: 'Press Start 2P', monospace;
+  background-color: #306850;
+  border: 2px solid #081820;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #e0f8d0;
+  padding: 8px 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  user-select: none;
+  cursor: pointer;
+  letter-spacing: -0.05em;
+  transition: none;
 }
 
+.gba-btn:hover:not(:disabled),
+.pkmn-btn:hover:not(:disabled) {
+  background-color: #3c7d62;
+}
+
+.gba-btn:active:not(:disabled),
 .pkmn-btn:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 
-    0 1px 0 rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background-color: #24523e;
+  transform: translateY(1px);
 }
 
+.gba-btn:disabled,
 .pkmn-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  filter: grayscale(0.6);
-  transform: none;
 }
 
-/* Primary Red Button (FireRed style) */
+/* Cream Button (Light Background) */
+.gba-btn-cream {
+  background-color: #e0f8d0;
+  border: 2px solid #306850;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #081820;
+}
+
+.gba-btn-cream:hover:not(:disabled) {
+  background-color: #f0ffea;
+}
+
+/* Accent Red Action/Warning Button */
+.gba-btn-red,
 .pkmn-btn-red {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 50%, #991b1b 100%);
-  color: #ffffff;
-  text-shadow: 1px 1px 0 #7f1d1d;
-  border-color: #7f1d1d;
+  background-color: #a84040;
+  border: 2px solid #081820;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #e0f8d0;
+  color: #e0f8d0;
 }
+
+.gba-btn-red:hover:not(:disabled),
 .pkmn-btn-red:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #b91c1c 100%);
+  background-color: #bd4c4c;
 }
 
-/* Primary Blue Button (Sapphire / Water style) */
-.pkmn-btn-blue {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
-  color: #ffffff;
-  text-shadow: 1px 1px 0 #1e3a8a;
-  border-color: #1e3a8a;
-}
-.pkmn-btn-blue:hover:not(:disabled) {
-  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%);
-}
-
-/* Emerald Green Button */
+/* Aliases for legacy button classes */
+.pkmn-btn-blue,
+.pkmn-btn-gold,
 .pkmn-btn-emerald {
-  background: linear-gradient(180deg, #10b981 0%, #059669 50%, #065f46 100%);
-  color: #ffffff;
-  text-shadow: 1px 1px 0 #064e3b;
-  border-color: #064e3b;
+  background-color: #306850;
+  border: 2px solid #081820;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px #88c070;
+  color: #e0f8d0;
 }
+
+.pkmn-btn-blue:hover:not(:disabled),
+.pkmn-btn-gold:hover:not(:disabled),
 .pkmn-btn-emerald:hover:not(:disabled) {
-  background: linear-gradient(180deg, #34d399 0%, #10b981 50%, #047857 100%);
+  background-color: #3c7d62;
 }
 
-/* Gold / Booster Pack Shiny Button */
-.pkmn-btn-gold {
-  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #b45309 100%);
-  color: #18181b;
-  text-shadow: 1px 1px 0 #fde68a;
-  border-color: #78350f;
-}
-.pkmn-btn-gold:hover:not(:disabled) {
-  background: linear-gradient(180deg, #fcd34d 0%, #fbbf24 50%, #d97706 100%);
-}
-
-/* Classic Circular GBA A & B Buttons */
-.pkmn-btn-round-a {
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-  border: 2px solid #7f1d1d;
-  color: #ffffff;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  font-weight: 900;
-  box-shadow: 0 3px 0 #7f1d1d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.pkmn-btn-round-a:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #7f1d1d;
-}
-
+/* Classic Circular GBA A & B Badges */
+.pkmn-btn-round-a,
 .pkmn-btn-round-b {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 9999px;
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-  border: 2px solid #1e3a8a;
-  color: #ffffff;
+  background-color: #a84040;
+  border: 2px solid #081820;
+  box-shadow: inset 0 0 0 1px #e0f8d0;
+  color: #e0f8d0;
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  font-weight: 900;
-  box-shadow: 0 3px 0 #1e3a8a;
+  font-size: 9px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-.pkmn-btn-round-b:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #1e3a8a;
 }
 
-/* Retro Arrow Cursor indicator for menus */
+/* Retro Arrow Cursor Indicator */
 .pkmn-cursor {
   display: inline-block;
-  color: #ef4444;
+  color: #88c070;
   margin-right: 6px;
   animation: cursorBlink 0.8s infinite steps(2, start);
 }
@@ -215,200 +186,132 @@
 }
 
 /* ==========================================================================
-   3. STANDARD POKÉMON BATTLE ARENA & PEDESTAL PLATFORMS
+   3. STRATEGY TAGS & HANKO SEALS
    ========================================================================== */
+.gba-tag-red {
+  border: 2px solid #a84040;
+  color: #a84040;
+  background: transparent;
+  font-family: 'Press Start 2P', monospace;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
 
-/* Standard Authentic Stadium Battlefield Background */
+/* ==========================================================================
+   4. OUTERMOST SCREEN BORDER (UKİYO-E WAVE APPLIED ONLY TO OUTER FRAME)
+   Never inside battle arena, moves, or HP bars!
+   ========================================================================== */
+.gba-screen-border {
+  border: 4px solid #306850;
+  box-shadow: inset 0 0 0 2px #88c070;
+  position: relative;
+  background-color: #081820;
+}
+
+.gba-outer-wave {
+  background-image: radial-gradient(circle at 100% 150%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
+    radial-gradient(circle at 0 150%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
+    radial-gradient(circle at 100% 50%, rgba(136, 192, 112, 0.05) 24%, transparent 25%),
+    radial-gradient(circle at 0 50%, rgba(136, 192, 112, 0.05) 24%, transparent 25%);
+  background-size: 32px 16px;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   5. BATTLE PEDESTAL & HP BAR GAUGES
+   ========================================================================== */
 .pkmn-battle-arena-standard {
-  background: radial-gradient(ellipse at 50% 30%, #1e3a5f 0%, #0f172a 65%, #020617 100%);
+  background-color: #081820;
   position: relative;
   overflow: hidden;
 }
 
-/* Stadium Floodlight Cones */
-.pkmn-stadium-lights {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  pointer-events: none;
-  background: 
-    radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 85% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 50% 100%, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
-}
-
-/* Authentic Pokémon Battler Platform (Green Grass & Dirt Pedestal) */
-.pkmn-platform-grass {
-  background: radial-gradient(ellipse at 50% 40%, #4ade80 0%, #22c55e 40%, #15803d 75%, #166534 100%);
-  border: 3px solid #14532d;
-  border-radius: 50%;
-  box-shadow: 
-    0 8px 0 #0f3d22,
-    0 16px 24px rgba(0, 0, 0, 0.6),
-    inset 0 3px 6px rgba(255, 255, 255, 0.4);
-  transform: rotateX(55deg);
-  transform-style: preserve-3d;
-}
-
-/* Opponent Platform (Slightly further in perspective, stadium turf) */
+.pkmn-platform-grass,
 .pkmn-platform-opponent {
-  background: radial-gradient(ellipse at 50% 40%, #38bdf8 0%, #0284c7 45%, #0369a1 80%, #075985 100%);
-  border: 3px solid #0c4a6e;
+  background: #306850;
+  border: 2px solid #88c070;
   border-radius: 50%;
-  box-shadow: 
-    0 6px 0 #082f49,
-    0 12px 18px rgba(0, 0, 0, 0.6),
-    inset 0 2px 4px rgba(255, 255, 255, 0.4);
   transform: rotateX(55deg);
   transform-style: preserve-3d;
 }
 
-/* ==========================================================================
-   4. VIEWPORT STABILITY: SUBTLE STAGE-ONLY CAMERA TREMOR
-   NEVER bounce the entire 100dvh root container!
-   ========================================================================== */
-@keyframes cameraTremor {
-  0% { transform: translate3d(0, 0, 0); }
-  20% { transform: translate3d(-3px, 2px, 0); }
-  40% { transform: translate3d(3px, -2px, 0); }
-  60% { transform: translate3d(-2px, -1px, 0); }
-  80% { transform: translate3d(2px, 2px, 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
-
-.camera-shake-stage {
-  animation: cameraTremor 0.28s ease-in-out;
-}
-
-/* ==========================================================================
-   5. RETRO POKÉMON HP BAR & STAT GAUGE
-   ========================================================================== */
 .pkmn-hp-frame {
-  background: #0f172a;
-  border: 2px solid #334155;
-  border-radius: 6px;
+  background: #081820;
+  border: 2px solid #306850;
+  border-radius: 4px;
   padding: 2px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .pkmn-hp-tag {
-  background: #f59e0b;
-  color: #000000;
+  background: #306850;
+  color: #e0f8d0;
   font-family: 'Press Start 2P', monospace;
   font-size: 7px;
-  font-weight: 900;
+  font-weight: 700;
   padding: 1px 3px;
   border-radius: 2px;
   line-height: 1;
 }
 
 /* ==========================================================================
-   6. NOSTALGIC TCG BOOSTER PACK & CARD FOIL SHIMMER
-   ========================================================================== */
-.pkmn-booster-crimp {
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.15) 0px,
-    rgba(255, 255, 255, 0.15) 2px,
-    rgba(0, 0, 0, 0.3) 2px,
-    rgba(0, 0, 0, 0.3) 4px
-  );
-}
-
-.pkmn-card-bezel {
-  border: 4px solid #facc15;
-  border-radius: 12px;
-  box-shadow: 
-    0 10px 25px rgba(0, 0, 0, 0.7),
-    inset 0 0 0 1px #854d0e;
-}
-
-/* ==========================================================================
-   7. POKÉMON SHOWDOWN ACTION FEED & LIVE LOG STYLES
+   6. SHOWDOWN ACTION FEED (COMPACT, ALWAYS VISIBLE)
    ========================================================================== */
 .pkmn-feed-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.3) rgba(15, 23, 42, 0.6);
+  scrollbar-color: #306850 #081820;
 }
 
 .pkmn-feed-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 .pkmn-feed-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #081820;
 }
 
 .pkmn-feed-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 4px;
-}
-
-.pkmn-feed-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.5);
-}
-
-/* Subtle fade-in for live stream logs */
-@keyframes feedLogFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  background: #306850;
 }
 
 .feed-log-entry {
-  animation: feedLogFadeIn 0.18s ease-out forwards;
+  animation: feedLogFadeIn 0.15s ease-out forwards;
 }
 
-/* Showdown Turn Banner */
+@keyframes feedLogFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .pkmn-showdown-turn-divider {
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 }
 
 .pkmn-showdown-turn-divider::before,
 .pkmn-showdown-turn-divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px dashed rgba(100, 116, 139, 0.35);
+  border-bottom: 1px dashed #306850;
 }
 
 .pkmn-showdown-turn-divider span {
   padding: 0 0.5rem;
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
-  color: #fbbf24;
-  letter-spacing: 0.05em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  color: #88c070;
 }
 
-/* ==========================================================================
-   8. GEN 3 POKÉMON & TRAINER CUSTOMIZATION CARDS
-   ========================================================================== */
-.pkmn-item-card {
-  contain: content;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  min-height: 0;
-}
-
+/* Strict Pixel Rendering */
+.pixelated,
 .pkmn-item-card img,
 .pkmn-item-card svg {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
 }
-
-
