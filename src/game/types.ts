@@ -25,7 +25,7 @@ export type PokemonType =
 
 export type MoveCategory = 'Physical' | 'Special' | 'Status';
 
-export type StatKey = 'hp' | 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed';
+export type StatKey = 'hp' | 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed' | 'accuracy' | 'evasion';
 
 export type StatusCondition = 'paralysis' | 'burn' | 'poison' | 'toxic' | 'sleep' | 'freeze';
 
@@ -43,6 +43,7 @@ export interface SecondaryEffectSpec {
   statChange?: StatChangeSpec;
   statChanges?: StatChangeSpec[];
   flinchChance?: number; // 0 - 100 (or uses chance if flinch is the primary secondary effect)
+  confusionChance?: number; // 0 - 100 chance to inflict confusion
 }
 
 export interface Move {
@@ -67,6 +68,13 @@ export interface Move {
   isProtect?: boolean; // Protect / Detect
   isSubstitute?: boolean; // Substitute
   weatherEffect?: WeatherType;
+  isPivot?: boolean; // Switches user out after attacking (Volt Switch, U-turn, Flip Turn, Parting Shot, Baton Pass)
+  isBatonPass?: boolean; // Passes stat stage boosts and Substitute to incoming teammate
+  infallible?: boolean; // Never misses (Aura Sphere, Aerial Ace, Swift, Shock Wave, Magical Leaf)
+  rechargeTurn?: boolean; // Forces user to skip next turn to recharge (Blast Burn, Frenzy Plant, Hydro Cannon)
+  causesConfusion?: boolean; // 100% confusion on hit (Confuse Ray, Sweet Kiss, Supersonic, Swagger)
+  entryHazard?: 'stealth_rock' | 'spikes' | 'toxic_spikes' | 'sticky_web'; // Sets entry hazard on opposing side
+  clearsHazards?: boolean; // Clears entry hazards (Rapid Spin, Defog)
 }
 
 export interface PokemonStats {
@@ -98,6 +106,9 @@ export interface Pokemon {
   substituteHp?: number;
   isProtected?: boolean;
   protectStreak?: number;
+  mustRecharge?: boolean;
+  isConfused?: boolean;
+  confusionTurns?: number;
   statStages?: {
     hp?: number;
     attack: number;
@@ -105,6 +116,8 @@ export interface Pokemon {
     spAtk: number;
     spDef: number;
     speed: number;
+    accuracy?: number;
+    evasion?: number;
   };
   fainted: boolean;
   equippedCosmetics?: {
@@ -112,6 +125,13 @@ export interface Pokemon {
     accessory?: string;
     aura?: string;
   };
+}
+
+export interface SideConditions {
+  stealthRock?: boolean;
+  spikes?: number; // 0 - 3 layers
+  toxicSpikes?: number; // 0 - 2 layers
+  stickyWeb?: boolean;
 }
 
 export interface TeamPreset {
@@ -153,6 +173,10 @@ export interface BattleState {
   isPlayerTurn: boolean;
   phase: 'action_select' | 'animating' | 'faint_switch_player' | 'faint_switch_opponent' | 'battle_over';
   winner?: 'player' | 'opponent' | null;
+  pendingPivot?: boolean;
+  pendingBatonPass?: boolean;
+  playerSideConditions?: SideConditions;
+  opponentSideConditions?: SideConditions;
   combatLog: BattleTurnLog[];
   lastMoveUsed?: {
     moveName: string;

@@ -676,3 +676,491 @@ test('move secondary effects KB: percent stat drops, self stat boosts, drawback 
   assert.equal(afterCalmMind.playerTeam[gengarIdx].statStages?.spDef, 1, 'Calm Mind must boost Sp. Def +1');
 });
 
+test('pivot moves (Volt Switch, U-turn) deal damage and switch out attacker safely', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  // Give player Mon Volt Switch (enriched from KB)
+  const pMon = state.playerTeam[0];
+  pMon.moves[0] = {
+    id: 'volt_switch',
+    name: 'Volt Switch',
+    type: 'Electric',
+    category: 'Special',
+    power: 70,
+    accuracy: 100,
+    pp: 20,
+    maxPp: 20,
+    description: 'After making its attack, the user rushes back to switch places with a party Pokémon in waiting.',
+  };
+
+  const oppMon = state.opponentTeam[0];
+  oppMon.moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  const initialOppHp = oppMon.currentHp;
+
+  // Turn 1: Player uses Volt Switch
+  const afterVoltSwitch = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  // Check that damage was dealt to opponent
+  assert.ok(afterVoltSwitch.opponentTeam[0].currentHp < initialOppHp, 'Volt Switch must deal damage to opponent');
+  // Check that player entered pivot switch phase
+  assert.equal(afterVoltSwitch.pendingPivot, true, 'pendingPivot must be true after Volt Switch connects');
+  assert.equal(afterVoltSwitch.phase, 'faint_switch_player', 'phase must be faint_switch_player for replacement selection');
+
+  // Turn 1b: Player selects replacement from bench (index 1)
+  const afterSwitch = executeBattleTurn(
+    afterVoltSwitch,
+    { type: 'switch', targetPokemonIndex: 1 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.equal(afterSwitch.playerActiveIndex, 1, 'Player active index must now be 1');
+  assert.equal(afterSwitch.pendingPivot, false, 'pendingPivot must be cleared after switch');
+  assert.equal(afterSwitch.phase, 'action_select', 'Phase must return to action_select');
+
+  // Opponent using Volt Switch
+  const oppState = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  oppState.weather = 'Clear';
+  oppState.opponentTeam[0].moves[0] = {
+    id: 'volt_switch',
+    name: 'Volt Switch',
+    type: 'Electric',
+    category: 'Special',
+    power: 70,
+    accuracy: 100,
+    pp: 20,
+    maxPp: 20,
+    description: 'After making its attack, the user rushes back to switch places with a party Pokémon in waiting.',
+  };
+  oppState.playerTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  const initialPlayerHp = oppState.playerTeam[0].currentHp;
+  const initialOppActiveIdx = oppState.opponentActiveIndex;
+
+  const afterOppVoltSwitch = executeBattleTurn(
+    oppState,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.ok(afterOppVoltSwitch.playerTeam[0].currentHp < initialPlayerHp, 'Opponent Volt Switch must deal damage to player');
+  assert.notEqual(afterOppVoltSwitch.opponentActiveIndex, initialOppActiveIdx, 'Opponent must switch to a bench teammate');
+});
+
+test('infallible accuracy moves (Aura Sphere) bypass accuracy checks', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  // Aura Sphere has accuracy: 100 (infallible in mechanics KB)
+  state.playerTeam[0].moves[0] = {
+    id: 'aura_sphere',
+    name: 'Aura Sphere',
+    type: 'Fighting',
+    category: 'Special',
+    power: 80,
+    accuracy: 100,
+    pp: 20,
+    maxPp: 20,
+    description: 'Never misses.',
+  };
+  state.opponentTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  const initialOppHp = state.opponentTeam[0].currentHp;
+
+  // With hitRoll = 99 (rng = 0.99), normal moves with accuracy 100 would miss if accuracy was lowered,
+  // but infallible moves never miss regardless of hit roll
+  const afterAuraSphere = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.99 }
+  );
+
+  assert.ok(afterAuraSphere.opponentTeam[0].currentHp < initialOppHp, 'Aura Sphere must hit regardless of roll');
+});
+
+test('recharge moves (Blast Burn, Frenzy Plant, Hydro Cannon) force a recharge turn', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  state.playerTeam[0].moves[0] = {
+    id: 'blast_burn',
+    name: 'Blast Burn',
+    type: 'Fire',
+    category: 'Special',
+    power: 150,
+    accuracy: 90,
+    pp: 5,
+    maxPp: 5,
+    description: 'User must recharge next turn.',
+  };
+  state.opponentTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  // Turn 1: Blast Burn executes
+  const turn1 = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.equal(turn1.playerTeam[0].mustRecharge, true, 'Attacker must be flagged for recharge');
+
+  const oppHpAfterTurn1 = turn1.opponentTeam[0].currentHp;
+
+  // Turn 2: Attempt another Blast Burn - should be forced to recharge
+  const turn2 = executeBattleTurn(
+    turn1,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.equal(turn2.opponentTeam[0].currentHp, oppHpAfterTurn1, 'Opponent took no damage because user had to recharge');
+  assert.equal(turn2.playerTeam[0].mustRecharge, false, 'mustRecharge flag is cleared after recharging');
+});
+
+test('Baton Pass transfers stat stages and Substitute to switch-in teammate', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  // Setup Dragon Dance stat stages and substitute on player Mon
+  const pMon = state.playerTeam[0];
+  pMon.statStages = {
+    hp: 0,
+    attack: 2,
+    defense: 0,
+    spAtk: 0,
+    spDef: 0,
+    speed: 2,
+  };
+  pMon.substituteHp = 30;
+
+  pMon.moves[0] = {
+    id: 'baton_pass',
+    name: 'Baton Pass',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'Passes boosts to teammate.',
+  };
+  state.opponentTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  // Turn 1: Player uses Baton Pass
+  const afterBatonPass = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.equal(afterBatonPass.pendingPivot, true, 'pendingPivot must be true');
+  assert.equal(afterBatonPass.pendingBatonPass, true, 'pendingBatonPass must be true');
+
+  // Turn 1b: Switch to teammate at index 1
+  const afterSwitch = executeBattleTurn(
+    afterBatonPass,
+    { type: 'switch', targetPokemonIndex: 1 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  const newActive = afterSwitch.playerTeam[1];
+  assert.equal(newActive.statStages?.attack, 2, 'Incoming Pokemon inherits +2 Attack from Baton Pass');
+  assert.equal(newActive.statStages?.speed, 2, 'Incoming Pokemon inherits +2 Speed from Baton Pass');
+  assert.equal(newActive.substituteHp, 30, 'Incoming Pokemon inherits Substitute HP from Baton Pass');
+});
+
+test('confusion: status and secondary application, self-hit damage, snap out, and clearing on switch', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  // 1. Confuse Ray inflicts confusion
+  state.playerTeam[0].moves[0] = {
+    id: 'confuse_ray',
+    name: 'Confuse Ray',
+    type: 'Ghost',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 10,
+    maxPp: 10,
+    description: 'Causes confusion.',
+  };
+  state.opponentTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  const afterConfuseRay = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  const oppMon = afterConfuseRay.opponentTeam[0];
+  assert.equal(oppMon.isConfused, true, 'Opponent must become confused by Confuse Ray');
+  assert.ok((oppMon.confusionTurns ?? 0) >= 1, 'Opponent must have positive confusion turns remaining');
+
+  // 2. Confused Pokemon rolls self-hit damage (< 0.33)
+  const oppInitialHp = oppMon.currentHp;
+  afterConfuseRay.playerTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+  // rng returns 0.1 for confusion self-hit roll
+  const afterSelfHarm = executeBattleTurn(
+    afterConfuseRay,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.1 }
+  );
+
+  assert.ok(
+    afterSelfHarm.opponentTeam[0].currentHp < oppInitialHp,
+    'Opponent must take self-harm damage when confusion roll triggers'
+  );
+
+  // 3. Snapping out of confusion when turns reach 0
+  afterSelfHarm.opponentTeam[0].confusionTurns = 1;
+  const afterSnapOut = executeBattleTurn(
+    afterSelfHarm,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+  assert.equal(afterSnapOut.opponentTeam[0].isConfused, false, 'Opponent must snap out of confusion when turns expire');
+
+  // 4. Switching out clears confusion
+  afterSnapOut.playerTeam[0].isConfused = true;
+  afterSnapOut.playerTeam[0].confusionTurns = 3;
+  const afterPlayerSwitch = executeBattleTurn(
+    afterSnapOut,
+    { type: 'switch', targetPokemonIndex: 1 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+  assert.equal(
+    afterPlayerSwitch.playerTeam[0].isConfused,
+    false,
+    'Benched Pokémon must have confusion cleared on switch out'
+  );
+});
+
+test('entry hazards: Stealth Rock, Spikes, Toxic Spikes, Sticky Web, and Hazard Clearing', () => {
+  const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
+  state.weather = 'Clear';
+
+  // 1. Player sets up Stealth Rock
+  state.playerTeam[0].moves[0] = {
+    id: 'stealth_rock',
+    name: 'Stealth Rock',
+    type: 'Rock',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 20,
+    maxPp: 20,
+    description: 'Sets Stealth Rock.',
+  };
+  state.opponentTeam[0].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+
+  const afterSR = executeBattleTurn(
+    state,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+
+  assert.equal(afterSR.opponentSideConditions?.stealthRock, true, 'Opponent side must have Stealth Rock active');
+
+  // 2. Opponent switches into Stealth Rock and takes damage based on Rock type effectiveness
+  const benchMon = afterSR.opponentTeam[1];
+  const initialBenchHp = benchMon.currentHp;
+  const afterOppSwitch = executeBattleTurn(
+    afterSR,
+    { type: 'move', moveIndex: 0 },
+    { type: 'switch', targetPokemonIndex: 1 },
+    { rng: () => 0.5 }
+  );
+
+  const activeOppAfterSwitch = afterOppSwitch.opponentTeam[1];
+  assert.ok(
+    activeOppAfterSwitch.currentHp < initialBenchHp,
+    'Incoming opponent Pokemon must take damage from Stealth Rock upon entry'
+  );
+
+  // 3. Spikes and Toxic Spikes stacking
+  afterOppSwitch.opponentTeam[1].moves[0] = {
+    id: 'splash',
+    name: 'Splash',
+    type: 'Normal',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'No effect.',
+  };
+  afterOppSwitch.playerTeam[0].moves[0] = {
+    id: 'spikes',
+    name: 'Spikes',
+    type: 'Ground',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 20,
+    maxPp: 20,
+    description: 'Scatters Spikes.',
+  };
+  const afterSpikes = executeBattleTurn(
+    afterOppSwitch,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+  assert.equal(afterSpikes.opponentSideConditions?.spikes, 1, 'Spikes layer 1 active');
+
+  // 4. Hazard Removal with Rapid Spin
+  afterSpikes.opponentSideConditions = {
+    stealthRock: true,
+    spikes: 2,
+    toxicSpikes: 1,
+    stickyWeb: true,
+  };
+  afterSpikes.playerSideConditions = {
+    stealthRock: true,
+    spikes: 1,
+  };
+
+  // Player uses Rapid Spin (damaging move that clears hazards on user side)
+  afterSpikes.playerTeam[0].moves[0] = {
+    id: 'rapid_spin',
+    name: 'Rapid Spin',
+    type: 'Normal',
+    category: 'Physical',
+    power: 50,
+    accuracy: 100,
+    pp: 40,
+    maxPp: 40,
+    description: 'Clears hazards.',
+  };
+  const afterRapidSpin = executeBattleTurn(
+    afterSpikes,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+  assert.deepEqual(afterRapidSpin.playerSideConditions, {}, 'Rapid Spin clears all hazards on player side');
+  assert.equal(afterRapidSpin.opponentSideConditions?.stealthRock, true, 'Opponent hazards remain intact after Rapid Spin');
+
+  // 5. Defog clears hazards on both sides
+  afterRapidSpin.playerTeam[0].moves[0] = {
+    id: 'defog',
+    name: 'Defog',
+    type: 'Flying',
+    category: 'Status',
+    power: 0,
+    accuracy: 100,
+    pp: 15,
+    maxPp: 15,
+    description: 'Clears all hazards on field.',
+  };
+  const afterDefog = executeBattleTurn(
+    afterRapidSpin,
+    { type: 'move', moveIndex: 0 },
+    { type: 'move', moveIndex: 0 },
+    { rng: () => 0.5 }
+  );
+  assert.deepEqual(afterDefog.opponentSideConditions, {}, 'Defog clears all hazards on opponent side');
+  assert.deepEqual(afterDefog.playerSideConditions, {}, 'Defog clears all hazards on player side');
+});
+
+
+

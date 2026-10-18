@@ -17,6 +17,8 @@ interface BattleStageProps {
   opponentMon: Pokemon;
   playerRemaining: number;
   opponentRemaining: number;
+  playerTeam?: Pokemon[];
+  opponentTeam?: Pokemon[];
   inventory: UserCosmeticInventory;
   isAwaitingPlayerInput: boolean;
   onOpenSummary: (mon: Pokemon, isOpponent: boolean) => void;
@@ -65,6 +67,8 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
   opponentMon,
   playerRemaining,
   opponentRemaining,
+  playerTeam,
+  opponentTeam,
   inventory,
   isAwaitingPlayerInput,
   onOpenSummary,
@@ -75,8 +79,40 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
   isScreenFlareActive = false,
   backgroundUrl,
 }) => {
+  // Proactive background preloading of all 12 combatants' front and back sprites
+  React.useEffect(() => {
+    const urls: string[] = [];
+    playerTeam?.forEach((p) => {
+      if (p.spriteBack) urls.push(p.spriteBack);
+      if (p.spriteFront) urls.push(p.spriteFront);
+    });
+    opponentTeam?.forEach((p) => {
+      if (p.spriteFront) urls.push(p.spriteFront);
+      if (p.spriteBack) urls.push(p.spriteBack);
+    });
+    urls.forEach((url) => {
+      const img = new Image();
+      img.src = url;
+    });
+  }, [playerTeam, opponentTeam]);
+
   return (
     <div className="relative z-10 flex-1 min-h-[156px] w-full overflow-hidden select-none">
+      {/* Zero-Latency Sprite Cache: Pre-renders bench sprites with sync decoding so switches are instantaneous */}
+      <div className="hidden" aria-hidden="true">
+        {playerTeam?.map((p) => (
+          <React.Fragment key={`cache_p_${p.id}`}>
+            <img src={p.spriteBack} alt="" loading="eager" decoding="sync" />
+            <img src={p.spriteFront} alt="" loading="eager" decoding="sync" />
+          </React.Fragment>
+        ))}
+        {opponentTeam?.map((p) => (
+          <React.Fragment key={`cache_o_${p.id}`}>
+            <img src={p.spriteFront} alt="" loading="eager" decoding="sync" />
+            <img src={p.spriteBack} alt="" loading="eager" decoding="sync" />
+          </React.Fragment>
+        ))}
+      </div>
       {/* Traditional Ukiyo-e Woodblock Landscape Background Layer (Strictly behind platforms, trainers & Pokémon) */}
       {backgroundUrl ? (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -145,10 +181,11 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
           ) : null}
           <div className={opponentAnimClass}>
             <img
+              key={`active_opp_${opponentMon.id || opponentMon.species}`}
               src={opponentMon.spriteFront}
               alt={opponentMon.species}
               loading="eager"
-              decoding="async"
+              decoding="sync"
               className="w-18 h-18 xs:w-20 xs:h-20 sm:w-24 sm:h-24 object-contain pixelated drop-shadow-[2px_3px_0_rgba(8,24,32,0.85)] select-none"
             />
           </div>
@@ -189,10 +226,11 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
           ) : null}
           <div className={playerAnimClass}>
             <img
+              key={`active_player_${playerMon.id || playerMon.species}`}
               src={playerMon.spriteBack}
               alt={playerMon.species}
               loading="eager"
-              decoding="async"
+              decoding="sync"
               className="w-20 h-20 xs:w-22 xs:h-22 sm:w-26 sm:h-26 object-contain pixelated drop-shadow-[2px_3px_0_rgba(8,24,32,0.85)] select-none -mb-1"
             />
           </div>

@@ -62,6 +62,8 @@ export function cloneBattleState(state: BattleState): BattleState {
     ...state,
     playerTeam: state.playerTeam.map(clonePokemon),
     opponentTeam: state.opponentTeam.map(clonePokemon),
+    playerSideConditions: state.playerSideConditions ? { ...state.playerSideConditions } : undefined,
+    opponentSideConditions: state.opponentSideConditions ? { ...state.opponentSideConditions } : undefined,
     combatLog: state.combatLog.slice(),
     protocolLog: state.protocolLog ? state.protocolLog.slice() : [],
     turnMoves: state.turnMoves ? state.turnMoves.map((tm) => ({ ...tm })) : [],
@@ -128,6 +130,10 @@ export function applyStatStageChange(
 export function calculateEffectiveStat(mon: Pokemon, stat: StatKey): number {
   if (stat === 'speed') {
     return calculateEffectiveSpeed(mon);
+  }
+  if (stat === 'accuracy' || stat === 'evasion') {
+    const stage = mon.statStages?.[stat] ?? 0;
+    return getStatStageMultiplier(stage);
   }
   const base = mon.baseStats[stat];
   const stage = mon.statStages?.[stat] ?? 0;
@@ -342,6 +348,46 @@ export function selectAIMoveOrSwitch(
   return { type: 'move', moveIndex: bestMoveIndex };
 }
 
+/**
+ * Selects the optimal conscious bench candidate to switch into (considers HP and type matchups)
+ */
+export function selectBestSwitchCandidate(
+  team: Pokemon[],
+  opposingActive: Pokemon,
+  currentActiveIndex: number
+): number {
+  let bestIdx = -1;
+  let highestScore = -999;
+
+  for (let i = 0; i < team.length; i++) {
+    if (i === currentActiveIndex) continue;
+    const mon = team[i];
+    if (mon.fainted || mon.currentHp <= 0) continue;
+
+    let score = (mon.currentHp / mon.maxHp) * 100;
+
+    // Favor candidates that resist opposing active's types
+    const takesSuperEffective = opposingActive.types.some(
+      (t) => calculateTypeEffectiveness(t, mon.types) >= 2
+    );
+    if (takesSuperEffective) score -= 40;
+
+    // Favor candidates with super effective offensive moves
+    const hasSuperEffective = mon.moves.some(
+      (m) => calculateTypeEffectiveness(m.type, opposingActive.types) >= 2
+    );
+    if (hasSuperEffective) score += 50;
+
+    if (score > highestScore || bestIdx === -1) {
+      highestScore = score;
+      bestIdx = i;
+    }
+  }
+
+  if (bestIdx !== -1) return bestIdx;
+  return team.findIndex((p, idx) => idx !== currentActiveIndex && !p.fainted && p.currentHp > 0);
+}
+
 export interface TurnExecutionOptions {
   rng?: () => number;
   forceCrit?: boolean;
@@ -394,6 +440,8 @@ export function executeBattleTurn(
     mon.substituteHp = 0;
     mon.isProtected = false;
     mon.protectStreak = 0;
+    mon.isConfused = false;
+    mon.confusionTurns = 0;
     mon.statStages = { hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
   };
 
@@ -489,21 +537,172 @@ export function executeBattleTurn(
     }
   };
 
+  // Helper to apply status effects
+  const applyStatusEffect = (
+    target: Pokemon,
+    targetSlot: string,
+    status: StatusCondition,
+    actorSide: 'player' | 'opponent'
+  ): boolean => {
+    if (target.fainted || target.currentHp <= 0) return false;
+    if (target.substituteHp && target.substituteHp > 0) {
+      log('system', `${target.species}'s substitute blocked the status!`, 'status');
+      return false;
+    }
+    if (target.statusCondition) return false;
+    if (isImmuneToStatus(target, status)) {
+      log('system', `It doesn't affect ${target.species}...`, 'status');
+      return false;
+    }
+    target.statusCondition = status;
+    if (status === 'sleep') {
+      target.sleepTurns = target.sleepTurns ?? 2;
+    } else if (status === 'toxic') {
+      target.toxicCounter = 0;
+    }
+    log(actorSide, `${target.species} was afflicted with ${status}!`, 'status');
+    nextState.protocolLog!.push(`|-status|${targetSlot}: ${target.species}|${status.slice(0, 3)}`);
+    return true;
+  };
+
+  // Helper to apply confusion (volatile status)
+  const applyConfusion = (
+    target: Pokemon,
+    targetSlot: string,
+    actorSide: 'player' | 'opponent'
+  ): boolean => {
+    if (target.fainted || target.currentHp <= 0) return false;
+    if (target.substituteHp && target.substituteHp > 0) {
+      log('system', `${target.species}'s substitute blocked confusion!`, 'status');
+      return false;
+    }
+    if (target.ability === 'Own Tempo') {
+      log('system', `${target.species}'s Own Tempo prevents confusion!`, 'status');
+      return false;
+    }
+    if (target.isConfused) {
+      log('system', `${target.species} is already confused!`, 'status');
+      return false;
+    }
+    target.isConfused = true;
+    target.confusionTurns = 2 + Math.floor(rng() * 4); // 2 to 5 turns
+    log(actorSide, `${target.species} became confused!`, 'status');
+    nextState.protocolLog!.push(`|-start|${targetSlot}: ${target.species}|confusion`);
+    return true;
+  };
+
+  // Helper to apply entry hazards when a Pokemon switches onto the field
+  const applyEntryHazards = (
+    incoming: Pokemon,
+    side: 'player' | 'opponent',
+    slot: string
+  ): void => {
+    if (incoming.fainted || incoming.currentHp <= 0) return;
+    const sideConditions =
+      side === 'player' ? nextState.playerSideConditions : nextState.opponentSideConditions;
+    if (!sideConditions) return;
+
+    const isFlying = incoming.types.includes('Flying');
+    const isLevitating = incoming.ability === 'Levitate';
+    const isGrounded = !isFlying && !isLevitating;
+
+    // 1. Toxic Spikes: Grounded Poison-types absorb and clear Toxic Spikes!
+    if (
+      isGrounded &&
+      incoming.types.includes('Poison') &&
+      sideConditions.toxicSpikes &&
+      sideConditions.toxicSpikes > 0
+    ) {
+      sideConditions.toxicSpikes = 0;
+      log('system', `The poison spikes disappeared from around your team's feet!`, 'status');
+      nextState.protocolLog!.push(
+        `|-sideend|${side === 'player' ? 'p1' : 'p2'}|move: Toxic Spikes|[from] pokemon: ${incoming.species}`
+      );
+    }
+
+    // 2. Stealth Rock (hits all Pokémon including Flying/Levitating)
+    if (sideConditions.stealthRock) {
+      const rockMult = calculateTypeEffectiveness('Rock', incoming.types);
+      const srDamage = Math.max(1, Math.floor((incoming.maxHp * rockMult) / 8));
+      incoming.currentHp = Math.max(0, incoming.currentHp - srDamage);
+      log('system', `Pointed stones dug into ${incoming.species}!`, 'damage');
+      nextState.protocolLog!.push(
+        `|-damage|${slot}: ${incoming.species}|${incoming.currentHp}/${incoming.maxHp}|[from] Stealth Rock`
+      );
+      if (incoming.currentHp <= 0) {
+        incoming.fainted = true;
+        log('system', `${incoming.species} fainted!`, 'faint');
+        nextState.protocolLog!.push(`|faint|${slot}: ${incoming.species}`);
+        return;
+      }
+    }
+
+    // 3. Spikes (Grounded only)
+    if (isGrounded && sideConditions.spikes && sideConditions.spikes > 0) {
+      const fraction = sideConditions.spikes === 1 ? 1 / 8 : sideConditions.spikes === 2 ? 1 / 6 : 1 / 4;
+      const spikeDamage = Math.max(1, Math.floor(incoming.maxHp * fraction));
+      incoming.currentHp = Math.max(0, incoming.currentHp - spikeDamage);
+      log('system', `${incoming.species} was hurt by the spikes!`, 'damage');
+      nextState.protocolLog!.push(
+        `|-damage|${slot}: ${incoming.species}|${incoming.currentHp}/${incoming.maxHp}|[from] Spikes`
+      );
+      if (incoming.currentHp <= 0) {
+        incoming.fainted = true;
+        log('system', `${incoming.species} fainted!`, 'faint');
+        nextState.protocolLog!.push(`|faint|${slot}: ${incoming.species}`);
+        return;
+      }
+    }
+
+    // 4. Toxic Spikes (Grounded only, non-Poison, non-Steel)
+    if (isGrounded && sideConditions.toxicSpikes && sideConditions.toxicSpikes > 0) {
+      if (!incoming.types.includes('Steel') && !incoming.types.includes('Poison') && !incoming.statusCondition) {
+        if (sideConditions.toxicSpikes >= 2) {
+          applyStatusEffect(incoming, slot, 'toxic', side === 'player' ? 'opponent' : 'player');
+        } else {
+          applyStatusEffect(incoming, slot, 'poison', side === 'player' ? 'opponent' : 'player');
+        }
+      }
+    }
+
+    // 5. Sticky Web (Grounded only)
+    if (isGrounded && sideConditions.stickyWeb) {
+      if (incoming.ability !== 'Clear Body') {
+        applySingleStatChange(
+          { stat: 'speed', stages: -1, target: 'self' },
+          incoming,
+          incoming,
+          slot,
+          slot
+        );
+        log('system', `${incoming.species} was caught in a Sticky Web!`, 'status');
+        nextState.protocolLog!.push(`|-activate|${slot}: ${incoming.species}|move: Sticky Web`);
+      }
+    }
+  };
+
   const playerWantsSwitch = playerAction.type === 'switch' && playerAction.targetPokemonIndex !== undefined;
   const opponentWantsSwitch = opponentAction.type === 'switch' && opponentAction.targetPokemonIndex !== undefined;
 
-  // CRITICAL INVARIANT: Free Post-Faint Replacement Switch
-  // When the player's active Pokémon has fainted, sending out its replacement fills the empty slot
-  // between turns. The opponent MUST NOT attack the incoming Pokémon, weather/status residuals MUST NOT
-  // tick a second time, and turnNumber does not advance until the next combat turn's action selection.
+  // CRITICAL INVARIANT: Free Post-Faint & Pivot Replacement Switch
+  // When the player's active Pokémon has fainted or pivoted out (Volt Switch / U-turn / Baton Pass),
+  // sending out its replacement fills the empty slot between turns.
   const isPostFaintPlayerSwitch =
-    (currentState.phase === 'faint_switch_player' || playerMon.fainted || playerMon.currentHp <= 0) &&
+    (currentState.phase === 'faint_switch_player' ||
+      currentState.pendingPivot ||
+      playerMon.fainted ||
+      playerMon.currentHp <= 0) &&
     playerWantsSwitch;
 
   if (isPostFaintPlayerSwitch) {
     const targetIdx = playerAction.targetPokemonIndex!;
     const target = nextState.playerTeam[targetIdx];
     if (target && !target.fainted && target.currentHp > 0 && targetIdx !== nextState.playerActiveIndex) {
+      if (currentState.pendingBatonPass) {
+        target.statStages = { ...playerMon.statStages! };
+        target.substituteHp = playerMon.substituteHp || 0;
+        log('system', `${playerMon.species} passed its stat boosts to ${target.species}!`, 'status');
+      }
       clearVolatileOnSwitch(playerMon);
       nextState.playerActiveIndex = targetIdx;
       log('player', `Go! ${target.species}!`, 'switch');
@@ -523,11 +722,16 @@ export function executeBattleTurn(
           nextState.protocolLog.push(
             `|switch|p2a: ${currentOpp.species}|${currentOpp.species}, L${currentOpp.level}|${currentOpp.currentHp}/${currentOpp.maxHp}`
           );
+          triggerSwitchInAbilities(currentOpp, target, 'opponent');
+          applyEntryHazards(currentOpp, 'opponent', 'p2a');
         }
       }
 
       triggerSwitchInAbilities(target, currentOpp, 'player');
+      applyEntryHazards(target, 'player', 'p1a');
       nextState.phase = 'action_select';
+      nextState.pendingPivot = false;
+      nextState.pendingBatonPass = false;
       nextState.isPlayerTurn = true;
       nextState.lastMoveUsed = undefined;
       nextState.turnMoves = [];
@@ -564,6 +768,7 @@ export function executeBattleTurn(
       nextState.playerActiveIndex = playerAction.targetPokemonIndex!;
       playerSwitched = true;
       triggerSwitchInAbilities(target, nextState.opponentTeam[nextState.opponentActiveIndex], 'player');
+      applyEntryHazards(target, 'player', 'p1a');
     }
   };
 
@@ -579,6 +784,7 @@ export function executeBattleTurn(
       nextState.opponentActiveIndex = opponentAction.targetPokemonIndex!;
       opponentSwitched = true;
       triggerSwitchInAbilities(target, nextState.playerTeam[nextState.playerActiveIndex], 'opponent');
+      applyEntryHazards(target, 'opponent', 'p2a');
     }
   };
 
@@ -597,8 +803,8 @@ export function executeBattleTurn(
     executeOpponentSwitch();
   }
 
-  const curPlayerMon = nextState.playerTeam[nextState.playerActiveIndex];
-  const curOpponentMon = nextState.opponentTeam[nextState.opponentActiveIndex];
+  let curPlayerMon = nextState.playerTeam[nextState.playerActiveIndex];
+  let curOpponentMon = nextState.opponentTeam[nextState.opponentActiveIndex];
 
   // Phase 2: Resolve Moves Sorted by Priority Bracket (+4, +2, +1, 0, -1), then Effective Speed, then 50/50 RNG
   interface TurnParticipant {
@@ -647,32 +853,57 @@ export function executeBattleTurn(
     return rng() < 0.5 ? 1 : -1;
   });
 
-  // Helper to apply status effects
-  const applyStatusEffect = (
-    target: Pokemon,
-    targetSlot: string,
-    status: StatusCondition,
-    actorSide: 'player' | 'opponent'
-  ) => {
-    if (target.fainted || target.currentHp <= 0) return false;
-    if (target.substituteHp && target.substituteHp > 0) {
-      log('system', `${target.species}'s substitute blocked the status!`, 'status');
+
+  const triggerPivotSwitch = (side: 'player' | 'opponent', attacker: Pokemon, isBatonPass?: boolean) => {
+    if (attacker.fainted || attacker.currentHp <= 0) return false;
+    const isPlayer = side === 'player';
+    const myTeam = isPlayer ? nextState.playerTeam : nextState.opponentTeam;
+    const myActiveIdx = isPlayer ? nextState.playerActiveIndex : nextState.opponentActiveIndex;
+    const hasBenchTeammates = myTeam.some(
+      (mon, idx) => idx !== myActiveIdx && !mon.fainted && mon.currentHp > 0
+    );
+
+    if (!hasBenchTeammates) {
+      log('system', `There is no Pokémon to switch with!`, 'status');
       return false;
     }
-    if (target.statusCondition) return false;
-    if (isImmuneToStatus(target, status)) {
-      log('system', `It doesn't affect ${target.species}...`, 'status');
-      return false;
+
+    if (side === 'opponent') {
+      const nextOppIdx = selectBestSwitchCandidate(
+        nextState.opponentTeam,
+        curPlayerMon,
+        nextState.opponentActiveIndex
+      );
+      if (nextOppIdx !== -1) {
+        const incoming = nextState.opponentTeam[nextOppIdx];
+        if (isBatonPass) {
+          incoming.statStages = { ...attacker.statStages! };
+          incoming.substituteHp = attacker.substituteHp || 0;
+          log('system', `${attacker.species} passed its stat boosts to ${incoming.species}!`, 'status');
+        }
+        clearVolatileOnSwitch(attacker);
+        nextState.opponentActiveIndex = nextOppIdx;
+        curOpponentMon = incoming;
+        log('opponent', `${oppTrainerName} withdrew ${attacker.species}!`, 'switch');
+        log('opponent', `${oppTrainerName} sent out ${incoming.species}!`, 'switch');
+        nextState.protocolLog!.push(
+          `|switch|p2a: ${incoming.species}|${incoming.species}, L${incoming.level}|${incoming.currentHp}/${incoming.maxHp}`
+        );
+        triggerSwitchInAbilities(incoming, curPlayerMon, 'opponent');
+        applyEntryHazards(incoming, 'opponent', 'p2a');
+        return true;
+      }
+    } else {
+      log('player', `${attacker.species} went back to its Trainer!`, 'switch');
+      nextState.protocolLog!.push(`|-message|${attacker.species} went back to its Trainer!`);
+      nextState.phase = 'faint_switch_player';
+      nextState.pendingPivot = true;
+      if (isBatonPass) {
+        nextState.pendingBatonPass = true;
+      }
+      return true;
     }
-    target.statusCondition = status;
-    if (status === 'sleep') {
-      target.sleepTurns = target.sleepTurns ?? 2;
-    } else if (status === 'toxic') {
-      target.toxicCounter = 0;
-    }
-    log(actorSide, `${target.species} was afflicted with ${status}!`, 'status');
-    nextState.protocolLog!.push(`|-status|${targetSlot}: ${target.species}|${status.slice(0, 3)}`);
-    return true;
+    return false;
   };
 
   const flinchedSides = new Set<'player' | 'opponent'>();
@@ -700,6 +931,14 @@ export function executeBattleTurn(
     const rawMove = attacker.moves[p.action.moveIndex ?? 0];
     if (!rawMove) continue;
     const move = enrichMoveWithMechanics(rawMove);
+
+    // Recharge Turn Check (e.g. after Blast Burn, Frenzy Plant, Hydro Cannon, Hyper Beam)
+    if (attacker.mustRecharge) {
+      attacker.mustRecharge = false;
+      log(p.side, `${attacker.species} must recharge!`, 'status');
+      nextState.protocolLog!.push(`|cant|${actorSlot}: ${attacker.species}|recharge`);
+      continue;
+    }
 
     // Pre-move Status Checks: Sleep, Freeze, Full Paralysis
     if (attacker.statusCondition === 'sleep') {
@@ -732,6 +971,43 @@ export function executeBattleTurn(
         log(p.side, `${attacker.species} is paralyzed! It can't move!`, 'status');
         nextState.protocolLog!.push(`|cant|${actorSlot}: ${attacker.species}|par`);
         continue;
+      }
+    }
+
+    // Confusion Check (Volatile status condition)
+    if (attacker.isConfused) {
+      log('system', `${attacker.species} is confused!`, 'status');
+      nextState.protocolLog!.push(`|-activate|${actorSlot}: ${attacker.species}|confusion`);
+      attacker.confusionTurns = (attacker.confusionTurns ?? 1) - 1;
+
+      if (attacker.confusionTurns <= 0) {
+        attacker.isConfused = false;
+        attacker.confusionTurns = 0;
+        log('system', `${attacker.species} snapped out of its confusion!`, 'status');
+        nextState.protocolLog!.push(`|-end|${actorSlot}: ${attacker.species}|confusion`);
+      } else {
+        const confusionRoll = rng();
+        if (confusionRoll < 0.33) {
+          log('system', `It hurt itself in its confusion!`, 'damage');
+          const atkStage = attacker.statStages?.attack ?? 0;
+          const defStage = attacker.statStages?.defense ?? 0;
+          const effectiveAtk = attacker.baseStats.attack * getStatStageMultiplier(atkStage);
+          const effectiveDef = Math.max(1, attacker.baseStats.defense * getStatStageMultiplier(defStage));
+          const levelFactor = Math.floor((2 * attacker.level) / 5) + 2;
+          const selfDamage = Math.max(1, Math.floor((levelFactor * 40 * (effectiveAtk / effectiveDef)) / 50 + 2));
+          attacker.currentHp = Math.max(0, attacker.currentHp - selfDamage);
+          nextState.protocolLog!.push(
+            `|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] confusion`
+          );
+
+          if (attacker.currentHp <= 0) {
+            attacker.fainted = true;
+            log('system', `${attacker.species} fainted!`, 'faint');
+            nextState.protocolLog!.push(`|faint|${actorSlot}: ${attacker.species}`);
+            break;
+          }
+          continue; // Hurt itself: skips chosen move this turn!
+        }
       }
     }
 
@@ -821,9 +1097,10 @@ export function executeBattleTurn(
       continue;
     }
 
-    // Check accuracy (No Guard bypasses accuracy checks)
+    // Check accuracy (No Guard and infallible moves like Aura Sphere bypass accuracy checks)
     const hasNoGuard = attacker.ability === 'No Guard' || defender.ability === 'No Guard';
-    if (!hasNoGuard && !isSelfMove) {
+    const isAlwaysHit = hasNoGuard || Boolean(move.infallible);
+    if (!isAlwaysHit && !isSelfMove) {
       const hitRoll = rng() * 100;
       if (hitRoll > move.accuracy) {
         log('system', `${attacker.species}'s attack missed!`);
@@ -853,6 +1130,83 @@ export function executeBattleTurn(
         attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + heal);
         log(p.side, `${attacker.species} restored ${heal} HP!`, 'status');
         nextState.protocolLog!.push(`|-heal|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}`);
+      }
+
+      // Entry Hazards (Stealth Rock, Spikes, Toxic Spikes, Sticky Web)
+      if (move.entryHazard) {
+        const oppSide = p.side === 'player' ? 'opponent' : 'player';
+        const oppSlot = p.side === 'player' ? 'p2' : 'p1';
+        if (oppSide === 'player') {
+          nextState.playerSideConditions = nextState.playerSideConditions || {};
+        } else {
+          nextState.opponentSideConditions = nextState.opponentSideConditions || {};
+        }
+        const targetSideCond = oppSide === 'player' ? nextState.playerSideConditions! : nextState.opponentSideConditions!;
+
+        if (move.entryHazard === 'stealth_rock') {
+          if (targetSideCond.stealthRock) {
+            log('system', `Pointed stones are already set up around the opposing team!`, 'status');
+          } else {
+            targetSideCond.stealthRock = true;
+            log(p.side, `Pointed stones float in the air around the opposing team!`, 'status');
+            nextState.protocolLog!.push(`|-sidestart|${oppSlot}: move: Stealth Rock`);
+          }
+        } else if (move.entryHazard === 'spikes') {
+          const currentSpikes = targetSideCond.spikes || 0;
+          if (currentSpikes >= 3) {
+            log('system', `Spikes cannot be scattered any deeper!`, 'status');
+          } else {
+            targetSideCond.spikes = currentSpikes + 1;
+            log(p.side, `Spikes were scattered all around the opposing team!`, 'status');
+            nextState.protocolLog!.push(`|-sidestart|${oppSlot}: move: Spikes`);
+          }
+        } else if (move.entryHazard === 'toxic_spikes') {
+          const currentTSpikes = targetSideCond.toxicSpikes || 0;
+          if (currentTSpikes >= 2) {
+            log('system', `Poison spikes cannot be scattered any deeper!`, 'status');
+          } else {
+            targetSideCond.toxicSpikes = currentTSpikes + 1;
+            log(p.side, `Poison spikes were scattered around the opposing team!`, 'status');
+            nextState.protocolLog!.push(`|-sidestart|${oppSlot}: move: Toxic Spikes`);
+          }
+        } else if (move.entryHazard === 'sticky_web') {
+          if (targetSideCond.stickyWeb) {
+            log('system', `A sticky web is already woven beneath the opposing team!`, 'status');
+          } else {
+            targetSideCond.stickyWeb = true;
+            log(p.side, `A sticky web has been laid out beneath the opposing team!`, 'status');
+            nextState.protocolLog!.push(`|-sidestart|${oppSlot}: move: Sticky Web`);
+          }
+        }
+      }
+
+      // Hazard Clearing (Defog)
+      if (move.clearsHazards) {
+        nextState.playerSideConditions = {};
+        nextState.opponentSideConditions = {};
+        log(p.side, `${attacker.species} blew away entry hazards!`, 'status');
+        nextState.protocolLog!.push(`|-sideend|p1: Stealth Rock`);
+        nextState.protocolLog!.push(`|-sideend|p2: Stealth Rock`);
+      }
+
+      // Status Confusion (Confuse Ray, Sweet Kiss, Supersonic, Swagger, Flatter)
+      if (move.causesConfusion) {
+        applyConfusion(defender, targetSlot, p.side);
+      }
+
+      // Status Pivot / Switch-out Move Resolution (Parting Shot, Baton Pass, Teleport, Chilly Reception)
+      const isStatusPivot = Boolean(
+        move.isPivot ||
+          move.id === 'parting_shot' ||
+          move.id === 'baton_pass' ||
+          move.id === 'teleport' ||
+          move.id === 'chilly_reception'
+      );
+      if (isStatusPivot && !attacker.fainted && attacker.currentHp > 0) {
+        const switched = triggerPivotSwitch(p.side, attacker, move.isBatonPass);
+        if (switched && p.side === 'player') {
+          break;
+        }
       }
       continue;
     }
@@ -1039,6 +1393,55 @@ export function executeBattleTurn(
       }
     }
 
+    // Secondary Confusion on damaging moves (Dynamic Punch, Water Pulse, Signal Beam, etc.)
+    const confusionChance = move.secondaryEffect?.confusionChance;
+    if (confusionChance && totalDamageDealt > 0 && !defenderDied && !hitSubstituteOnly) {
+      const sereneGraceMult = attacker.ability === 'Serene Grace' ? 2 : 1;
+      const confRoll = rng() * 100;
+      if (confRoll < confusionChance * sereneGraceMult) {
+        applyConfusion(defender, targetSlot, p.side);
+      }
+    }
+
+    // Hazard Removal on damaging moves (Rapid Spin)
+    if (move.clearsHazards && totalDamageDealt > 0) {
+      if (p.side === 'player') {
+        nextState.playerSideConditions = {};
+      } else {
+        nextState.opponentSideConditions = {};
+      }
+      log(p.side, `${attacker.species} blew away entry hazards!`, 'status');
+      nextState.protocolLog!.push(`|-sideend|${p.side === 'player' ? 'p1' : 'p2'}: move: Rapid Spin`);
+    }
+
+    // Outrage fatigue confusion
+    if (move.id === 'outrage' && !attacker.fainted && attacker.currentHp > 0) {
+      if (rng() < 0.5) {
+        applyConfusion(attacker, actorSlot, p.side);
+        log('system', `${attacker.species} became confused due to fatigue!`, 'status');
+      }
+    }
+
+    // Recharge Turn Flag (Blast Burn, Frenzy Plant, Hydro Cannon, Hyper Beam)
+    if (move.rechargeTurn && !attacker.fainted && attacker.currentHp > 0) {
+      attacker.mustRecharge = true;
+    }
+
+    // Pivot / Switch-out Move Resolution (Volt Switch, U-turn, Flip Turn)
+    const isPivotMove = Boolean(
+      move.isPivot ||
+        move.id === 'volt_switch' ||
+        move.id === 'u_turn' ||
+        move.id === 'flip_turn'
+    );
+
+    if (isPivotMove && totalDamageDealt > 0 && !attacker.fainted && attacker.currentHp > 0) {
+      const switched = triggerPivotSwitch(p.side, attacker, move.isBatonPass);
+      if (switched && p.side === 'player') {
+        break;
+      }
+    }
+
     // Check faint: A knocked out Pokemon CANNOT attack back or execute their action
     if (defenderDied) {
       log('system', `${defender.species} fainted!`, 'faint');
@@ -1159,11 +1562,12 @@ export function executeBattleTurn(
         if (!curP.fainted && curP.currentHp > 0) {
           triggerSwitchInAbilities(newMon, curP, 'opponent');
         }
+        applyEntryHazards(newMon, 'opponent', 'p2a');
       }
     }
 
-    // If player's active Pokémon fainted, enter free post-faint replacement phase
-    if (curP.fainted || curP.currentHp <= 0) {
+    // If player's active Pokémon fainted or pivoted out, enter free post-faint/pivot replacement phase
+    if (curP.fainted || curP.currentHp <= 0 || nextState.pendingPivot) {
       nextState.phase = 'faint_switch_player';
     } else {
       nextState.phase = 'action_select';
@@ -1269,6 +1673,8 @@ export function initializeBattle(playerPokemonList: Pokemon[], customOpponentLis
     opponentTeam: oppTeamCopy,
     isPlayerTurn: true,
     phase: 'action_select',
+    playerSideConditions: {},
+    opponentSideConditions: {},
     protocolLog: [
       '|start',
       '|gen|4',

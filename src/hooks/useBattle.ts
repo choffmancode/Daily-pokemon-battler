@@ -291,7 +291,7 @@ export function useBattle({
             setLiveCombatLog(nextState.combatLog);
             onUpdateBattle(nextState);
             setIsTurnProcessing(false);
-            if (firstMove.targetSide === 'player') {
+            if (firstMove.targetSide === 'player' || nextState.phase === 'faint_switch_player' || nextState.pendingPivot) {
               setSelectedSubMenu('switch');
             }
           }, 550);
@@ -390,22 +390,22 @@ export function useBattle({
                 setLiveCombatLog(nextState.combatLog);
                 onUpdateBattle(nextState);
                 setIsTurnProcessing(false);
-                if (nextState.phase === 'faint_switch_player') {
+                if (nextState.phase === 'faint_switch_player' || nextState.pendingPivot) {
                   setSelectedSubMenu('switch');
                 }
               }
             }, 620);
           }, 240);
         } else {
-          // No second move scheduled (e.g. status or single switch)
+          // No second move scheduled (e.g. status or single switch / pivot)
           setLiveCombatLog(nextState.combatLog);
           onUpdateBattle(nextState);
           setIsTurnProcessing(false);
-          if (nextState.phase === 'faint_switch_player') {
+          if (nextState.phase === 'faint_switch_player' || nextState.pendingPivot) {
             setSelectedSubMenu('switch');
           }
         }
-      }, 620);
+      }, secondMove ? 620 : 360);
     },
     [isTurnProcessing, battleState, playerMon, opponentMon, onUpdateBattle]
   );
@@ -430,7 +430,10 @@ export function useBattle({
       setMidTurnOpponentHp(null);
 
       const isPostFaintSwitch =
-        battleState.phase === 'faint_switch_player' || rawPlayerMon.fainted || rawPlayerMon.currentHp <= 0;
+        battleState.phase === 'faint_switch_player' ||
+        battleState.pendingPivot ||
+        rawPlayerMon.fainted ||
+        rawPlayerMon.currentHp <= 0;
 
       // On a post-faint replacement switch, the opponent does not get a free attack
       const aiAction = isPostFaintSwitch
@@ -443,14 +446,14 @@ export function useBattle({
         aiAction
       );
 
-      // Update combat log & state
+      // Update combat log & state immediately so the new Pokémon's sprite appears without delay
       setLiveCombatLog(nextState.combatLog);
       onUpdateBattle(nextState);
+      setSelectedSubMenu(nextState.phase === 'faint_switch_player' ? 'switch' : 'moves');
 
       addTimeout(() => {
         setIsTurnProcessing(false);
-        setSelectedSubMenu(nextState.phase === 'faint_switch_player' ? 'switch' : 'moves');
-      }, 350);
+      }, 150);
     },
     [isTurnProcessing, battleState, rawPlayerMon, opponentMon, onUpdateBattle]
   );

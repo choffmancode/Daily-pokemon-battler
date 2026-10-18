@@ -30,6 +30,13 @@ export interface MoveMechanicsEntry {
   isSubstitute?: boolean;
   weatherEffect?: WeatherType;
   healFraction?: number;
+  isPivot?: boolean;
+  isBatonPass?: boolean;
+  infallible?: boolean;
+  rechargeTurn?: boolean;
+  causesConfusion?: boolean;
+  entryHazard?: 'stealth_rock' | 'spikes' | 'toxic_spikes' | 'sticky_web';
+  clearsHazards?: boolean;
 }
 
 const ALL_COMBAT_STATS_BOOST_1: StatChangeSpec[] = [
@@ -932,6 +939,274 @@ export const MOVE_MECHANICS_KB: Record<string, MoveMechanicsEntry> = {
     name: 'Sandstorm',
     weatherEffect: 'Sand',
   },
+
+  /* ============================================================================
+   * 9. PIVOT & SWITCHOUT MOVES
+   * ============================================================================ */
+  volt_switch: {
+    id: 'volt_switch',
+    name: 'Volt Switch',
+    isPivot: true,
+  },
+  u_turn: {
+    id: 'u_turn',
+    name: 'U-turn',
+    isPivot: true,
+  },
+  flip_turn: {
+    id: 'flip_turn',
+    name: 'Flip Turn',
+    isPivot: true,
+  },
+  parting_shot: {
+    id: 'parting_shot',
+    name: 'Parting Shot',
+    isPivot: true,
+    statChanges: [
+      { stat: 'attack', stages: -1, target: 'opponent' },
+      { stat: 'spAtk', stages: -1, target: 'opponent' },
+    ],
+  },
+  baton_pass: {
+    id: 'baton_pass',
+    name: 'Baton Pass',
+    isPivot: true,
+    isBatonPass: true,
+  },
+  teleport: {
+    id: 'teleport',
+    name: 'Teleport',
+    priority: -6,
+    isPivot: true,
+  },
+  chilly_reception: {
+    id: 'chilly_reception',
+    name: 'Chilly Reception',
+    weatherEffect: 'Hail',
+    isPivot: true,
+  },
+
+  /* ============================================================================
+   * 10. INFALLIBLE ACCURACY MOVES (NEVER MISS)
+   * ============================================================================ */
+  aura_sphere: {
+    id: 'aura_sphere',
+    name: 'Aura Sphere',
+    infallible: true,
+  },
+  aerial_ace: {
+    id: 'aerial_ace',
+    name: 'Aerial Ace',
+    infallible: true,
+  },
+  swift: {
+    id: 'swift',
+    name: 'Swift',
+    infallible: true,
+  },
+  shock_wave: {
+    id: 'shock_wave',
+    name: 'Shock Wave',
+    infallible: true,
+  },
+  magical_leaf: {
+    id: 'magical_leaf',
+    name: 'Magical Leaf',
+    infallible: true,
+  },
+  shadow_punch: {
+    id: 'shadow_punch',
+    name: 'Shadow Punch',
+    infallible: true,
+  },
+
+  /* ============================================================================
+   * 11. RECHARGE TURN MOVES (USER MUST REST NEXT TURN)
+   * ============================================================================ */
+  blast_burn: {
+    id: 'blast_burn',
+    name: 'Blast Burn',
+    rechargeTurn: true,
+  },
+  frenzy_plant: {
+    id: 'frenzy_plant',
+    name: 'Frenzy Plant',
+    rechargeTurn: true,
+  },
+  hydro_cannon: {
+    id: 'hydro_cannon',
+    name: 'Hydro Cannon',
+    rechargeTurn: true,
+  },
+  hyper_beam: {
+    id: 'hyper_beam',
+    name: 'Hyper Beam',
+    rechargeTurn: true,
+  },
+  giga_impact: {
+    id: 'giga_impact',
+    name: 'Giga Impact',
+    rechargeTurn: true,
+  },
+
+  /* ============================================================================
+   * 12. GENERAL COMPETITIVE OFFENSIVE & COVERAGE MOVES
+   * ============================================================================ */
+  dazzling_gleam: {
+    id: 'dazzling_gleam',
+    name: 'Dazzling Gleam',
+  },
+  earthquake: {
+    id: 'earthquake',
+    name: 'Earthquake',
+  },
+  surf: {
+    id: 'surf',
+    name: 'Surf',
+  },
+  hydro_pump: {
+    id: 'hydro_pump',
+    name: 'Hydro Pump',
+  },
+  dragon_claw: {
+    id: 'dragon_claw',
+    name: 'Dragon Claw',
+  },
+  dragon_pulse: {
+    id: 'dragon_pulse',
+    name: 'Dragon Pulse',
+  },
+  grass_knot: {
+    id: 'grass_knot',
+    name: 'Grass Knot',
+  },
+  hidden_power: {
+    id: 'hidden_power',
+    name: 'Hidden Power',
+  },
+  x_scissor: {
+    id: 'x_scissor',
+    name: 'X-Scissor',
+  },
+  dynamic_punch: {
+    id: 'dynamic_punch',
+    name: 'Dynamic Punch',
+    secondaryEffect: { chance: 100, confusionChance: 100 },
+  },
+  signal_beam: {
+    id: 'signal_beam',
+    name: 'Signal Beam',
+    secondaryEffect: { chance: 10, confusionChance: 10 },
+  },
+  outrage: {
+    id: 'outrage',
+    name: 'Outrage',
+  },
+
+  /* ============================================================================
+   * 13. ENTRY HAZARDS & HAZARD REMOVAL
+   * ============================================================================ */
+  stealth_rock: {
+    id: 'stealth_rock',
+    name: 'Stealth Rock',
+    entryHazard: 'stealth_rock',
+  },
+  spikes: {
+    id: 'spikes',
+    name: 'Spikes',
+    entryHazard: 'spikes',
+  },
+  toxic_spikes: {
+    id: 'toxic_spikes',
+    name: 'Toxic Spikes',
+    entryHazard: 'toxic_spikes',
+  },
+  sticky_web: {
+    id: 'sticky_web',
+    name: 'Sticky Web',
+    entryHazard: 'sticky_web',
+  },
+  rapid_spin: {
+    id: 'rapid_spin',
+    name: 'Rapid Spin',
+    clearsHazards: true,
+    secondaryEffect: {
+      chance: 100,
+      statChange: { stat: 'speed', stages: 1, target: 'self' },
+    },
+  },
+  defog: {
+    id: 'defog',
+    name: 'Defog',
+    clearsHazards: true,
+    statChange: { stat: 'evasion', stages: -1, target: 'opponent' },
+  },
+
+  /* ============================================================================
+   * 14. CONFUSION INFLICTING MOVES
+   * ============================================================================ */
+  confuse_ray: {
+    id: 'confuse_ray',
+    name: 'Confuse Ray',
+    causesConfusion: true,
+  },
+  sweet_kiss: {
+    id: 'sweet_kiss',
+    name: 'Sweet Kiss',
+    causesConfusion: true,
+  },
+  supersonic: {
+    id: 'supersonic',
+    name: 'Supersonic',
+    causesConfusion: true,
+  },
+  teeter_dance: {
+    id: 'teeter_dance',
+    name: 'Teeter Dance',
+    causesConfusion: true,
+  },
+  swagger: {
+    id: 'swagger',
+    name: 'Swagger',
+    causesConfusion: true,
+    statChange: { stat: 'attack', stages: 2, target: 'opponent' },
+  },
+  flatter: {
+    id: 'flatter',
+    name: 'Flatter',
+    causesConfusion: true,
+    statChange: { stat: 'spAtk', stages: 1, target: 'opponent' },
+  },
+  water_pulse: {
+    id: 'water_pulse',
+    name: 'Water Pulse',
+    secondaryEffect: { chance: 20, confusionChance: 20 },
+  },
+  confusion: {
+    id: 'confusion',
+    name: 'Confusion',
+    secondaryEffect: { chance: 10, confusionChance: 10 },
+  },
+  psybeam: {
+    id: 'psybeam',
+    name: 'Psybeam',
+    secondaryEffect: { chance: 10, confusionChance: 10 },
+  },
+  hurricane: {
+    id: 'hurricane',
+    name: 'Hurricane',
+    secondaryEffect: { chance: 30, confusionChance: 30 },
+  },
+  dizzy_punch: {
+    id: 'dizzy_punch',
+    name: 'Dizzy Punch',
+    secondaryEffect: { chance: 20, confusionChance: 20 },
+  },
+  rock_climb: {
+    id: 'rock_climb',
+    name: 'Rock Climb',
+    secondaryEffect: { chance: 20, confusionChance: 20 },
+  },
 };
 
 export function normalizeMoveKey(idOrName: string): string {
@@ -972,6 +1247,7 @@ export function enrichMoveWithMechanics(move: Move): Move {
     secondaryEffect: move.secondaryEffect
       ? {
           ...move.secondaryEffect,
+          confusionChance: move.secondaryEffect.confusionChance ?? spec.secondaryEffect?.confusionChance,
           statChange: move.secondaryEffect.statChange ? { ...move.secondaryEffect.statChange } : undefined,
           statChanges: move.secondaryEffect.statChanges
             ? move.secondaryEffect.statChanges.map((sc) => ({ ...sc }))
@@ -997,5 +1273,12 @@ export function enrichMoveWithMechanics(move: Move): Move {
     isProtect: move.isProtect ?? spec.isProtect,
     isSubstitute: move.isSubstitute ?? spec.isSubstitute,
     weatherEffect: move.weatherEffect ?? spec.weatherEffect,
+    isPivot: move.isPivot ?? spec.isPivot,
+    isBatonPass: move.isBatonPass ?? spec.isBatonPass,
+    infallible: move.infallible ?? spec.infallible,
+    rechargeTurn: move.rechargeTurn ?? spec.rechargeTurn,
+    causesConfusion: move.causesConfusion ?? spec.causesConfusion,
+    entryHazard: move.entryHazard ?? spec.entryHazard,
+    clearsHazards: move.clearsHazards ?? spec.clearsHazards,
   };
 }

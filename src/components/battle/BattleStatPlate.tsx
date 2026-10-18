@@ -162,6 +162,14 @@ const BattleStatPlateComponent: React.FC<BattleStatPlateProps> = ({
               {statusMeta.label}
             </span>
           )}
+          {pokemon.isConfused && (
+            <span
+              className="font-pixel text-[6px] font-bold text-[#102018] px-1 py-[1.5px] rounded-[2px] border border-[#102018] leading-none shrink-0 bg-[#e8c040]"
+              title="Confused"
+            >
+              CONF
+            </span>
+          )}
           <div className="w-[78%] flex items-center bg-[#244034] border-[1.5px] border-[#142820] rounded-full pl-2 pr-1 py-[1.5px] shadow-[inset_0_1px_0_rgba(16,32,24,0.65)]">
             <span className="font-pixel text-[7px] font-bold text-[#e88840] mr-1.5 leading-none tracking-tight drop-shadow-[1px_1px_0_#102018]">
               HP

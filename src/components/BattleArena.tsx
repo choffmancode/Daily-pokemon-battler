@@ -156,7 +156,12 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
   });
 
   const isAwaitingPlayerInput = !isTurnProcessing && battleState.phase === 'action_select';
-  const playerNeedsSwitch = !isTurnProcessing && (playerMon.fainted || playerMon.currentHp <= 0);
+  const playerNeedsSwitch =
+    !isTurnProcessing &&
+    (playerMon.fainted ||
+      playerMon.currentHp <= 0 ||
+      battleState.phase === 'faint_switch_player' ||
+      Boolean(battleState.pendingPivot));
 
   const toggleActionLog = () => {
     soundFX.playSelect();
@@ -344,6 +349,8 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             opponentRemaining={
               battleState.opponentTeam.filter((p) => !p.fainted && p.currentHp > 0).length
             }
+            playerTeam={battleState.playerTeam}
+            opponentTeam={battleState.opponentTeam}
             inventory={inventory}
             isAwaitingPlayerInput={isAwaitingPlayerInput}
             onOpenSummary={handleOpenSummary}
@@ -387,7 +394,9 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
 
             {playerNeedsSwitch ? (
               <span className="gba-title-text text-[11.5px] xs:text-[12.5px] font-bold text-[#a83838] truncate">
-                {playerMon.species.toUpperCase()} fainted! Choose next Pokémon!
+                {playerMon.fainted || playerMon.currentHp <= 0
+                  ? `${playerMon.species.toUpperCase()} fainted! Choose next Pokémon!`
+                  : `${playerMon.species.toUpperCase()} went back! Choose next Pokémon!`}
               </span>
             ) : isTurnProcessing ? (
               <span className="gba-title-text text-[11.5px] xs:text-[12.5px] font-bold text-[#183828] truncate">
