@@ -45,7 +45,7 @@ const TrainerBattleSpriteComponent: React.FC<TrainerBattleSpriteProps> = ({
   }[size];
 
 
-  // If Opponent: Render Champion in the Battle Screen v4 emerald-coat & silver-hair GBA pixel sprite
+  // If Opponent: Render Champion Cynthia in the Battle Screen with authentic DPP battle sprite
   if (isOpponent) {
     return (
       <div
@@ -53,9 +53,9 @@ const TrainerBattleSpriteComponent: React.FC<TrainerBattleSpriteProps> = ({
         title="Champion Cynthia"
       >
         <img
-          src="/sprites/trainers/champion_battle.png"
-          alt="Champion"
-          className="w-10 h-20 xs:w-11 xs:h-22 sm:w-12 sm:h-24 object-contain pixelated drop-shadow-[1px_2px_0_#081820] select-none"
+          src="/sprites/trainers/cynthia_battle.png"
+          alt="Champion Cynthia"
+          className="h-20 xs:h-22 sm:h-24 w-auto object-contain pixelated drop-shadow-[1px_2px_0_#081820] select-none"
         />
       </div>
     );

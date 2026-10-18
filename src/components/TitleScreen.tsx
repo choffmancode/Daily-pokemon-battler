@@ -279,37 +279,28 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <PixelDiamondIcon />
         </header>
 
-        {/* Central Hero Stage: Champion Pixel Portrait + Ukiyo-e Waves on #081820 */}
+        {/* Central Hero Stage: Champion Cynthia Pokemon Card Cover */}
         <div
           onClick={() => {
             soundFX.playSelect();
             onOpenTeamSelect('teams');
           }}
-          className="relative z-20 flex-1 min-h-0 w-full flex items-end justify-center overflow-hidden cursor-pointer -mt-2"
+          className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center p-1 sm:p-2 cursor-pointer group"
           title="Click to challenge Today's Teams"
         >
-          <svg
-            viewBox="32 178 618 442"
-            preserveAspectRatio="xMidYMax slice"
-            className="w-full h-full max-h-full select-none pixelated overflow-hidden"
-            role="img"
-            aria-label="Champion Cynthia Pixel Portrait"
+          <div
+            className="relative h-full max-h-[340px] rounded-[4px] p-[3px] bg-[#183828] border-2 border-[#306850] shadow-[0_4px_16px_rgba(0,0,0,0.7),0_0_0_1px_#88c070] transition-transform duration-200 group-hover:scale-[1.02] active:scale-[0.99] flex items-center justify-center overflow-hidden"
+            style={{ aspectRatio: '250 / 354' }}
           >
-            <defs>
-              <clipPath id="cynthia-hero-clip">
-                <rect x="32" y="178" width="618" height="442" />
-              </clipPath>
-            </defs>
-            <image
-              href="/sprites/champion_hero_ref.jpg"
-              x="0"
-              y="0"
-              width="682"
-              height="1024"
-              clipPath="url(#cynthia-hero-clip)"
-              preserveAspectRatio="none"
+            <img
+              src="/sprites/trainers/cynthia_cover_card.png"
+              alt="Champion Cynthia Supporter Card"
+              className="w-full h-full object-contain rounded-[2px] select-none"
+              loading="eager"
             />
-          </svg>
+            {/* Subtle GBA Holo / Gloss Glint Accent */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-transparent via-[#e0f8d0]/10 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+          </div>
         </div>
 
         {/* Bottom 3 Stacked Chamfered GBA Command Buttons (Reference Screen 1) */}

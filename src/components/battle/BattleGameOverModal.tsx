@@ -282,24 +282,14 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
             2. CHAMPION DIALOGUE CARD + HANKO STAMP ([勝] / [敗])
            =================================================================== */}
         <div className="w-full bg-[#305840] border-[3px] border-[#b8d898] shadow-[0_0_0_3px_#081820] rounded-[3px] p-1.5 grid grid-cols-12 gap-1.5 items-stretch shrink-0">
-          {/* Left: Framed Square Champion Portrait (Cropped from Working Hero Asset) */}
-          <div className="col-span-4 bg-[#183828] border-2 border-[#081820] overflow-hidden flex items-center justify-center h-[84px] sm:h-[90px]">
-            <svg
-              viewBox="175 182 225 225"
-              preserveAspectRatio="xMidYMin slice"
-              className="w-full h-full pixelated select-none"
-              role="img"
-              aria-label="Champion Cynthia Portrait"
-            >
-              <image
-                href="/sprites/champion_hero_ref.jpg"
-                x="0"
-                y="0"
-                width="682"
-                height="1024"
-                preserveAspectRatio="none"
-              />
-            </svg>
+          {/* Left: Framed Square Champion Portrait (Authentic Cynthia Shoulder Pose) */}
+          <div className="col-span-4 bg-[#183828] border-2 border-[#081820] overflow-hidden flex items-center justify-center h-[84px] sm:h-[90px] p-0.5">
+            <img
+              src="/sprites/trainers/cynthia_portrait_bust.png"
+              alt="Champion Cynthia Portrait"
+              className="w-full h-full object-contain object-top pixelated select-none"
+              loading="eager"
+            />
           </div>
 
           {/* Right: Cream Dialogue Speech Box + Hanko Seal */}
