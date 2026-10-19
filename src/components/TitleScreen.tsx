@@ -290,12 +290,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         >
           <div
             className="relative h-full max-h-[340px] rounded-[4px] p-[3px] bg-[#183828] border-2 border-[#306850] shadow-[0_4px_16px_rgba(0,0,0,0.7),0_0_0_1px_#88c070] transition-transform duration-200 group-hover:scale-[1.02] active:scale-[0.99] flex items-center justify-center overflow-hidden"
-            style={{ aspectRatio: '250 / 354' }}
+            style={{ aspectRatio: '723 / 1024' }}
           >
             <img
               src="/sprites/trainers/cynthia_cover_card.png"
-              alt="Champion Cynthia Supporter Card"
-              className="w-full h-full object-contain rounded-[2px] select-none"
+              alt="Champion Cynthia Purple Aura Card"
+              className="w-full h-full object-cover rounded-[2px] select-none"
               loading="eager"
             />
             {/* Subtle GBA Holo / Gloss Glint Accent */}

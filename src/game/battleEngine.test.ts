@@ -406,8 +406,8 @@ test('Protect blocks attacks, Recoil/Drain adjust attacker HP, and double faint 
       p.currentHp = 0;
     }
   });
-  drawState.playerTeam[0].currentHp = 10;
-  drawState.opponentTeam[0].currentHp = 100;
+  drawState.playerTeam[0].currentHp = 5;
+  drawState.opponentTeam[0].currentHp = 20;
   drawState.playerTeam[0].moves[0] = {
     id: 'volt_tackle',
     name: 'Volt Tackle',
