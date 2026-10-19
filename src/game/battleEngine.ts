@@ -14,9 +14,11 @@ import {
   StatChangeSpec,
   StatusCondition,
   WeatherType,
+  SideConditions,
 } from './types';
 import { TYPE_CHART, CHAMPION_CYNTHIA_TEAM } from './constants';
 import { enrichMoveWithMechanics, getMoveMechanics } from './data/moveMechanicsKB';
+import { selectAdvancedAIMoveOrSwitch, selectBestRevengeSwitch } from './advancedAI';
 
 // High-speed lookup caches for type effectiveness and deterministic damage
 const TYPE_EFFECTIVENESS_CACHE = new Map<string, number>();
@@ -286,106 +288,34 @@ export function calculateDamage(
 
 /**
  * Intelligent AI Move and Switch Choice (Champion Cynthia / Red behavior)
+ * Driven by the 8-Layer CFRU / Radical Red scoring engine in advancedAI.ts
  */
 export function selectAIMoveOrSwitch(
   aiActive: Pokemon,
   playerActive: Pokemon,
-  aiTeam: Pokemon[]
+  aiTeam: Pokemon[],
+  playerSideConditions?: SideConditions,
+  weather?: WeatherType
 ): BattleAction {
-  if (aiActive.fainted || aiActive.currentHp <= 0) {
-    const nextIdx = aiTeam.findIndex((p) => !p.fainted && p.currentHp > 0);
-    return { type: 'switch', targetPokemonIndex: Math.max(0, nextIdx) };
-  }
-
-  let bestMoveIndex = 0;
-  let highestDamageScore = -1;
-
-  for (let i = 0; i < aiActive.moves.length; i++) {
-    const move = aiActive.moves[i];
-    if (move.pp <= 0) continue;
-
-    if (move.category === 'Status') {
-      if (aiActive.currentHp > aiActive.maxHp * 0.6 && !playerActive.statusCondition && !playerActive.substituteHp) {
-        if ((move.id === 'sleep_powder' || move.id === 'hypnosis' || move.statusEffect) && Math.random() < 0.6) {
-          return { type: 'move', moveIndex: i };
-        }
-        if ((move.id === 'calm_mind' || move.statChange) && Math.random() < 0.4) {
-          return { type: 'move', moveIndex: i };
-        }
-      }
-      continue;
-    }
-
-    const { damage, effectiveness } = calculateDamage(aiActive, playerActive, move, { rngVariance: 0.95 });
-
-    let score = damage;
-    if (damage >= playerActive.currentHp) {
-      score += 1000;
-    }
-    if ((move.priority || 0) > 0 && playerActive.currentHp < 70) {
-      score += 300;
-    }
-    score *= effectiveness;
-
-    if (score > highestDamageScore) {
-      highestDamageScore = score;
-      bestMoveIndex = i;
-    }
-  }
-
-  const playerCounterPotential = playerActive.moves.some(
-    (m) => calculateTypeEffectiveness(m.type, aiActive.types) >= 2
+  return selectAdvancedAIMoveOrSwitch(
+    aiActive,
+    playerActive,
+    aiTeam,
+    playerSideConditions,
+    weather
   );
-  if (aiActive.currentHp < aiActive.maxHp * 0.25 && playerCounterPotential && Math.random() < 0.35) {
-    const alternativeIdx = aiTeam.findIndex(
-      (p, idx) => idx !== aiTeam.indexOf(aiActive) && !p.fainted && p.currentHp > p.maxHp * 0.5
-    );
-    if (alternativeIdx !== -1) {
-      return { type: 'switch', targetPokemonIndex: alternativeIdx };
-    }
-  }
-
-  return { type: 'move', moveIndex: bestMoveIndex };
 }
 
 /**
- * Selects the optimal conscious bench candidate to switch into (considers HP and type matchups)
+ * Selects the optimal conscious bench candidate to switch into (considers HP, immunities, and type matchups)
  */
 export function selectBestSwitchCandidate(
   team: Pokemon[],
   opposingActive: Pokemon,
-  currentActiveIndex: number
+  currentActiveIndex: number,
+  weather?: WeatherType
 ): number {
-  let bestIdx = -1;
-  let highestScore = -999;
-
-  for (let i = 0; i < team.length; i++) {
-    if (i === currentActiveIndex) continue;
-    const mon = team[i];
-    if (mon.fainted || mon.currentHp <= 0) continue;
-
-    let score = (mon.currentHp / mon.maxHp) * 100;
-
-    // Favor candidates that resist opposing active's types
-    const takesSuperEffective = opposingActive.types.some(
-      (t) => calculateTypeEffectiveness(t, mon.types) >= 2
-    );
-    if (takesSuperEffective) score -= 40;
-
-    // Favor candidates with super effective offensive moves
-    const hasSuperEffective = mon.moves.some(
-      (m) => calculateTypeEffectiveness(m.type, opposingActive.types) >= 2
-    );
-    if (hasSuperEffective) score += 50;
-
-    if (score > highestScore || bestIdx === -1) {
-      highestScore = score;
-      bestIdx = i;
-    }
-  }
-
-  if (bestIdx !== -1) return bestIdx;
-  return team.findIndex((p, idx) => idx !== currentActiveIndex && !p.fainted && p.currentHp > 0);
+  return selectBestRevengeSwitch(team, opposingActive, currentActiveIndex, weather);
 }
 
 export interface TurnExecutionOptions {

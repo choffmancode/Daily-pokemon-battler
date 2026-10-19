@@ -180,7 +180,13 @@ export function useBattle({
       setActiveVFX(null);
       setFloatingDamage(null);
 
-      const aiAction = selectAIMoveOrSwitch(opponentMon, playerMon, battleState.opponentTeam);
+      const aiAction = selectAIMoveOrSwitch(
+        opponentMon,
+        playerMon,
+        battleState.opponentTeam,
+        battleState.playerSideConditions,
+        battleState.weather
+      );
       const nextState = executeBattleTurn(
         battleState,
         { type: 'move', moveIndex },
@@ -438,7 +444,13 @@ export function useBattle({
       // On a post-faint replacement switch, the opponent does not get a free attack
       const aiAction = isPostFaintSwitch
         ? { type: 'switch' as const, targetPokemonIndex: battleState.opponentActiveIndex }
-        : selectAIMoveOrSwitch(opponentMon, target, battleState.opponentTeam);
+        : selectAIMoveOrSwitch(
+            opponentMon,
+            target,
+            battleState.opponentTeam,
+            battleState.playerSideConditions,
+            battleState.weather
+          );
 
       const nextState = executeBattleTurn(
         battleState,

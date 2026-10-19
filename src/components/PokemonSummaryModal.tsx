@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Pokemon, PokemonType } from '../game/types';
 import { GBA_TYPE_COLORS, TYPE_ABBR, getOfficialArtworkUrl } from '../game/data/typeChart';
 import { soundFX } from './AudioEngine';
+import { getPokemonStatDisplayList, getAccuracyEvasionDisplay } from '../game/statCalculator';
 
 interface PokemonSummaryModalProps {
   isOpen: boolean;
@@ -225,25 +226,122 @@ export const PokemonSummaryModal: React.FC<PokemonSummaryModalProps> = ({
 
         {/* 5. Tab Content */}
         {activeTab === 'stats' ? (
-          <div className="gba-frame-cream p-2.5 text-[#081820] grid grid-cols-3 gap-1.5">
-            {[
-              { label: 'HP', val: currentMon.baseStats.hp },
-              { label: 'ATTACK', val: currentMon.baseStats.attack },
-              { label: 'DEFENSE', val: currentMon.baseStats.defense },
-              { label: 'SP. ATK', val: currentMon.baseStats.spAtk },
-              { label: 'SP. DEF', val: currentMon.baseStats.spDef },
-              { label: 'SPEED', val: currentMon.baseStats.speed },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-[#d0e4b0] border border-[#306850] p-1.5 flex flex-col justify-between"
-              >
-                <span className="font-pixel text-[6.5px] text-[#306850]">{stat.label}</span>
-                <span className="gba-title-text text-[12px] font-bold text-[#081820] mt-0.5">
-                  {stat.val}
-                </span>
-              </div>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            <div className="gba-frame-cream p-2 text-[#081820] grid grid-cols-3 gap-1.5">
+              {getPokemonStatDisplayList(currentMon).map((stat) => {
+                if (stat.key === 'hp') {
+                  return (
+                    <div
+                      key={stat.key}
+                      className="bg-[#d0e4b0] border border-[#306850] p-1.5 flex flex-col justify-between min-h-[52px]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-pixel text-[6.5px] text-[#306850]">{stat.label}</span>
+                      </div>
+                      <span className="gba-title-text text-[12px] font-bold text-[#081820] mt-0.5">
+                        {stat.effectiveVal}
+                      </span>
+                      <span className="font-pixel text-[5.5px] text-[#306850]">
+                        Max: {stat.baseVal}
+                      </span>
+                    </div>
+                  );
+                }
+
+                const isBoosted = stat.isBoosted;
+                const isReduced = stat.isReduced;
+                const isParalyzed = stat.isParalyzed;
+
+                let boxBg = 'bg-[#d0e4b0] border-[#306850]';
+                let valColor = 'text-[#081820]';
+                let subColor = 'text-[#306850]';
+
+                if (isBoosted) {
+                  boxBg = 'bg-[#c8e8a8] border-2 border-[#306850] shadow-sm';
+                  valColor = 'text-[#183828]';
+                  subColor = 'text-[#183828] font-semibold';
+                } else if (isParalyzed) {
+                  boxBg = 'bg-[#f0e0c8] border-2 border-[#e88840]';
+                  valColor = 'text-[#e88840]';
+                  subColor = 'text-[#e88840]';
+                } else if (isReduced) {
+                  boxBg = 'bg-[#f0d8d0] border-2 border-[#a84040]';
+                  valColor = 'text-[#a84040]';
+                  subColor = 'text-[#a84040]';
+                }
+
+                return (
+                  <div
+                    key={stat.key}
+                    className={`${boxBg} border p-1.5 flex flex-col justify-between min-h-[52px] transition-all`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-pixel text-[6.5px] text-[#306850]">{stat.label}</span>
+                      {isBoosted && (
+                        <span className="font-pixel text-[6px] px-1 py-[0.5px] bg-[#306850] text-[#e0f8d0] rounded-[2px] font-bold">
+                          ▲+{stat.stage}
+                        </span>
+                      )}
+                      {stat.stage < 0 && (
+                        <span className="font-pixel text-[6px] px-1 py-[0.5px] bg-[#a84040] text-[#e0f8d0] rounded-[2px] font-bold">
+                          ▼{stat.stage}
+                        </span>
+                      )}
+                      {isParalyzed && (
+                        <span className="font-pixel text-[5.5px] px-1 py-[0.5px] bg-[#e88840] text-[#081820] rounded-[2px] font-bold">
+                          PRZ
+                        </span>
+                      )}
+                    </div>
+                    <span className={`gba-title-text text-[12px] font-bold ${valColor} mt-0.5`}>
+                      {stat.effectiveVal}
+                    </span>
+                    <span className={`font-pixel text-[5.5px] ${subColor} truncate`}>
+                      {stat.stage !== 0 || isParalyzed ? stat.multiplierText : `Base: ${stat.baseVal}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Optional Accuracy & Evasion Row if modified in battle */}
+            {(() => {
+              const accEva = getAccuracyEvasionDisplay(currentMon);
+              if (!accEva.hasModifications) return null;
+              return (
+                <div className="gba-frame-cream px-2 py-1 text-[#081820] flex items-center justify-around font-pixel text-[6.5px] border border-[#306850]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#306850]">ACCURACY:</span>
+                    <span
+                      className={`font-bold ${
+                        accEva.accuracyStage > 0
+                          ? 'text-[#183828]'
+                          : accEva.accuracyStage < 0
+                          ? 'text-[#a84040]'
+                          : 'text-[#081820]'
+                      }`}
+                    >
+                      {accEva.accuracyMultiplierText}
+                    </span>
+                  </div>
+                  <span className="text-[#88c070]">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#306850]">EVASION:</span>
+                    <span
+                      className={`font-bold ${
+                        accEva.evasionStage > 0
+                          ? 'text-[#183828]'
+                          : accEva.evasionStage < 0
+                          ? 'text-[#a84040]'
+                          : 'text-[#081820]'
+                      }`}
+                    >
+                      {accEva.evasionMultiplierText}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
