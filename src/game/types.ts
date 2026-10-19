@@ -138,6 +138,7 @@ export interface TeamPreset {
   id: string;
   name: string;
   tagline: string;
+  strategyTag?: 'SWEEP' | 'STALL' | 'BALANCE';
   difficulty: 'Beginner Friendly' | 'Intermediate' | 'Strategic';
   description: string;
   recommendedLead: string;
