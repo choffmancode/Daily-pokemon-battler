@@ -67,7 +67,39 @@ const ChamferedBannerFrameSVG: React.FC = () => (
 );
 
 /**
- * Chamfered Double-Lined GBA Menu Button Frame SVG (Matches Reference Screen 1 Buttons)
+ * Chamfered Outer Screen Bezel SVG (Matches Reference Screen Bezel)
+ */
+const ChamferedScreenFrameSVG: React.FC = () => (
+  <svg
+    viewBox="0 0 380 780"
+    preserveAspectRatio="none"
+    className="absolute inset-0 w-full h-full pointer-events-none z-10"
+    style={{ shapeRendering: 'crispEdges' }}
+  >
+    {/* Outer Chamfered Border */}
+    <polygon
+      points="16,2 364,2 378,16 378,764 364,778 16,778 2,764 2,16"
+      fill="none"
+      stroke="#509878"
+      strokeWidth="2.5"
+    />
+    {/* Inner Chamfered Border */}
+    <polygon
+      points="19,7 361,7 373,19 373,761 361,773 19,773 7,761 7,19"
+      fill="none"
+      stroke="#204838"
+      strokeWidth="2"
+    />
+    {/* 4 Corner Diamond Accent Rivets */}
+    <rect x="18" y="18" width="4" height="4" fill="#88c070" />
+    <rect x="358" y="18" width="4" height="4" fill="#88c070" />
+    <rect x="18" y="758" width="4" height="4" fill="#88c070" />
+    <rect x="358" y="758" width="4" height="4" fill="#88c070" />
+  </svg>
+);
+
+/**
+ * Chamfered Double-Lined GBA Menu Button Frame SVG (Matches Reference Screen Buttons)
  */
 const ChamferedButtonFrameSVG: React.FC = () => (
   <svg
@@ -76,32 +108,25 @@ const ChamferedButtonFrameSVG: React.FC = () => (
     className="absolute inset-0 w-full h-full pointer-events-none"
     style={{ shapeRendering: 'crispEdges' }}
   >
-    {/* Outer Dark Trim */}
+    {/* Outer Chamfered Dark Forest Bezel */}
     <polygon
       points="8,0 352,0 360,8 360,54 352,62 8,62 0,54 0,8"
-      fill="#183828"
-      stroke="#306850"
-      strokeWidth="2"
-    />
-    {/* Cream Outer Chamfered Border */}
-    <polygon
-      points="9,2.5 351,2.5 357.5,9 357.5,53 351,59.5 9,59.5 2.5,53 2.5,9"
-      fill="#183828"
-      stroke="#e0f8d0"
+      fill="#122a1e"
+      stroke="#509878"
       strokeWidth="2.5"
     />
     {/* Inner Sage Chamfered Rim */}
     <polygon
-      points="13,7 347,7 353,13 353,49 347,55 13,55 7,49 7,13"
-      fill="#163324"
-      stroke="#306850"
+      points="12,5 348,5 355,12 355,50 348,57 12,57 5,50 5,12"
+      fill="none"
+      stroke="#204838"
       strokeWidth="2"
     />
     {/* 4 Inner Corner Diagonal Ticks */}
-    <polyline points="11,16 16,11" stroke="#88c070" strokeWidth="2" />
-    <polyline points="349,16 344,11" stroke="#88c070" strokeWidth="2" />
-    <polyline points="11,46 16,51" stroke="#88c070" strokeWidth="2" />
-    <polyline points="349,46 344,51" stroke="#88c070" strokeWidth="2" />
+    <polyline points="10,15 15,10" stroke="#70b898" strokeWidth="2" />
+    <polyline points="350,15 345,10" stroke="#70b898" strokeWidth="2" />
+    <polyline points="10,47 15,52" stroke="#70b898" strokeWidth="2" />
+    <polyline points="350,47 345,52" stroke="#70b898" strokeWidth="2" />
   </svg>
 );
 
@@ -261,22 +286,22 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         {isMuted ? <VolumeX className="w-3.5 h-3.5 text-[#a84040]" /> : <Volume2 className="w-3.5 h-3.5 text-[#88c070]" />}
       </button>
 
-      {/* 2:3 GBA Handheld Portrait Frame (Matches Reference Screen 1) */}
-      <div className="relative w-full max-w-[360px] sm:max-w-[390px] h-full max-h-[820px] gba-screen-border p-3 sm:p-4 flex flex-col justify-between overflow-hidden">
-        {/* 4 Inner Corner Square Rivets */}
-        <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
-        <span className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
-        <span className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#306850] pointer-events-none z-20" />
+      {/* 2:3 GBA Handheld Portrait Frame (Matches Reference Screen) */}
+      <div className="relative w-full max-w-[360px] sm:max-w-[390px] h-full max-h-[820px] p-3.5 sm:p-4 flex flex-col justify-between overflow-hidden">
+        <ChamferedScreenFrameSVG />
 
-        {/* Top Chamfered Banner: ◇ DAILY CHAMPION ◇ */}
-        <header className="relative z-10 w-full h-[58px] sm:h-[66px] shrink-0 flex items-center justify-between px-4">
-          <ChamferedBannerFrameSVG />
-          <PixelDiamondIcon />
-          <h1 className="relative z-10 font-pixel text-[15px] xs:text-[17px] sm:text-[19px] text-[#e0f8d0] gba-title-text drop-shadow-[2px_2px_0_#306850] whitespace-nowrap">
-            DAILY CHAMPION
-          </h1>
-          <PixelDiamondIcon />
+        {/* Top Header: VS CHAMP Retro GBA Arcade Pixel Logo */}
+        <header className="relative z-20 w-full shrink-0 flex items-center justify-center pt-1 pb-1 px-2">
+          <img
+            src="/logos/vschamp_logo_arcade.png"
+            alt="VS CHAMP"
+            className="w-[230px] xs:w-[260px] sm:w-[290px] h-auto max-h-[118px] sm:max-h-[132px] object-contain select-none drop-shadow-[0_0_16px_rgba(136,192,112,0.35)] drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)] filter brightness-105 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer"
+            loading="eager"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenTeamSelect('teams');
+            }}
+          />
         </header>
 
         {/* Central Hero Stage: Champion Cynthia Pokemon Card Cover */}
@@ -286,10 +311,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             onOpenTeamSelect('teams');
           }}
           className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center p-1 sm:p-2 cursor-pointer group"
-          title="Click to challenge Today's Teams"
+          title="Click to challenge Champion Cynthia"
         >
           <div
-            className="relative h-full max-h-[340px] rounded-[4px] p-[3px] bg-[#183828] border-2 border-[#306850] shadow-[0_4px_16px_rgba(0,0,0,0.7),0_0_0_1px_#88c070] transition-transform duration-200 group-hover:scale-[1.02] active:scale-[0.99] flex items-center justify-center overflow-hidden"
+            className="relative h-full max-h-[330px] rounded-[4px] p-[2.5px] bg-[#0e221a] border-2 border-[#306850] shadow-[0_4px_16px_rgba(0,0,0,0.7),0_0_0_1px_#509878] transition-transform duration-200 group-hover:scale-[1.02] active:scale-[0.99] flex items-center justify-center overflow-hidden"
             style={{ aspectRatio: '723 / 1024' }}
           >
             <img
@@ -303,8 +328,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </div>
 
-        {/* Bottom 3 Stacked Chamfered GBA Command Buttons (Reference Screen 1) */}
-        <nav className="relative z-20 w-full flex flex-col gap-2 sm:gap-2.5 shrink-0">
+        {/* Bottom 3 Stacked Chamfered GBA Command Buttons (Reference Screen) */}
+        <nav className="relative z-20 w-full flex flex-col gap-2 sm:gap-2.5 shrink-0 pb-1">
           {/* 1. DAILY BATTLE */}
           <button
             type="button"
@@ -313,12 +338,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               onOpenTeamSelect('teams');
             }}
             data-start="true"
-            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
           >
             <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
               <PixelSwordsIcon />
-              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
                 DAILY BATTLE
               </span>
             </div>
@@ -331,12 +356,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               soundFX.playSelect();
               onOpenTeamSelect('lead');
             }}
-            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
           >
             <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
               <PixelShieldIcon />
-              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
                 GAUNTLET RUN
               </span>
             </div>
@@ -349,12 +374,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               soundFX.playSelect();
               setIsCollectionMenuOpen(true);
             }}
-            className="relative w-full h-[52px] sm:h-[60px] px-5 flex items-center cursor-pointer group active:translate-y-[1px]"
+            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
           >
             <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-4 gap-3.5 sm:gap-4">
+            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
               <PixelChestIcon />
-              <span className="font-pixel text-[14px] xs:text-[16px] sm:text-[18px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
+              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
                 COLLECTION
               </span>
             </div>
