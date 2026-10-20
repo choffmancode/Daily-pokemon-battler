@@ -1,6 +1,8 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * VS CHAMP — The Anime Key-Art Master Panel Title Screen
  */
 
 import React, { useEffect, useState } from 'react';
@@ -22,209 +24,6 @@ interface TitleScreenProps {
   onToggleMute: () => void;
 }
 
-/**
- * Chamfered Double-Lined GBA Banner Frame SVG (Matches Reference Screen 1 Top Banner)
- */
-const ChamferedBannerFrameSVG: React.FC = () => (
-  <svg
-    viewBox="0 0 360 68"
-    preserveAspectRatio="none"
-    className="absolute inset-0 w-full h-full pointer-events-none"
-    style={{ shapeRendering: 'crispEdges' }}
-  >
-    {/* Outer Dark Trim */}
-    <polygon
-      points="12,0 348,0 360,12 360,56 348,68 12,68 0,56 0,12"
-      fill="#081820"
-      stroke="#306850"
-      strokeWidth="2"
-    />
-    {/* Main Cream Outer Chamfered Border */}
-    <polygon
-      points="13,3 347,3 357,13 357,55 347,65 13,65 3,55 3,13"
-      fill="#081820"
-      stroke="#e0f8d0"
-      strokeWidth="3"
-    />
-    {/* Inner Sage Chamfered Rim */}
-    <polygon
-      points="16,8 344,8 352,16 352,52 344,60 16,60 8,52 8,16"
-      fill="#081820"
-      stroke="#306850"
-      strokeWidth="2"
-    />
-    {/* Corner Accent Ticks */}
-    <polyline points="12,18 18,12" stroke="#88c070" strokeWidth="2" />
-    <polyline points="348,18 342,12" stroke="#88c070" strokeWidth="2" />
-    <polyline points="12,50 18,56" stroke="#88c070" strokeWidth="2" />
-    <polyline points="348,50 342,56" stroke="#88c070" strokeWidth="2" />
-    {/* Symmetrical Left & Right Decorative Underline Bars (Reference Screen 1) */}
-    <rect x="44" y="51" width="76" height="2" fill="#306850" />
-    <rect x="44" y="55" width="76" height="2" fill="#306850" />
-    <rect x="240" y="51" width="76" height="2" fill="#306850" />
-    <rect x="240" y="55" width="76" height="2" fill="#306850" />
-  </svg>
-);
-
-/**
- * Chamfered Outer Screen Bezel SVG (Matches Reference Screen Bezel)
- */
-const ChamferedScreenFrameSVG: React.FC = () => (
-  <svg
-    viewBox="0 0 380 780"
-    preserveAspectRatio="none"
-    className="absolute inset-0 w-full h-full pointer-events-none z-10"
-    style={{ shapeRendering: 'crispEdges' }}
-  >
-    {/* Outer Chamfered Border */}
-    <polygon
-      points="16,2 364,2 378,16 378,764 364,778 16,778 2,764 2,16"
-      fill="none"
-      stroke="#509878"
-      strokeWidth="2.5"
-    />
-    {/* Inner Chamfered Border */}
-    <polygon
-      points="19,7 361,7 373,19 373,761 361,773 19,773 7,761 7,19"
-      fill="none"
-      stroke="#204838"
-      strokeWidth="2"
-    />
-    {/* 4 Corner Diamond Accent Rivets */}
-    <rect x="18" y="18" width="4" height="4" fill="#88c070" />
-    <rect x="358" y="18" width="4" height="4" fill="#88c070" />
-    <rect x="18" y="758" width="4" height="4" fill="#88c070" />
-    <rect x="358" y="758" width="4" height="4" fill="#88c070" />
-  </svg>
-);
-
-/**
- * Chamfered Double-Lined GBA Menu Button Frame SVG (Matches Reference Screen Buttons)
- */
-const ChamferedButtonFrameSVG: React.FC = () => (
-  <svg
-    viewBox="0 0 360 62"
-    preserveAspectRatio="none"
-    className="absolute inset-0 w-full h-full pointer-events-none"
-    style={{ shapeRendering: 'crispEdges' }}
-  >
-    {/* Outer Chamfered Dark Forest Bezel */}
-    <polygon
-      points="8,0 352,0 360,8 360,54 352,62 8,62 0,54 0,8"
-      fill="#122a1e"
-      stroke="#509878"
-      strokeWidth="2.5"
-    />
-    {/* Inner Sage Chamfered Rim */}
-    <polygon
-      points="12,5 348,5 355,12 355,50 348,57 12,57 5,50 5,12"
-      fill="none"
-      stroke="#204838"
-      strokeWidth="2"
-    />
-    {/* 4 Inner Corner Diagonal Ticks */}
-    <polyline points="10,15 15,10" stroke="#70b898" strokeWidth="2" />
-    <polyline points="350,15 345,10" stroke="#70b898" strokeWidth="2" />
-    <polyline points="10,47 15,52" stroke="#70b898" strokeWidth="2" />
-    <polyline points="350,47 345,52" stroke="#70b898" strokeWidth="2" />
-  </svg>
-);
-
-/**
- * Pixel Diamond Icon ◇ for the Top Header Banner
- */
-const PixelDiamondIcon: React.FC = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 12 12"
-    className="relative z-10 w-4 h-4 shrink-0"
-    style={{ shapeRendering: 'crispEdges' }}
-  >
-    <path
-      d="M5 1h2v2h2v2h2v2H9v2H7v2H5V9H3V7H1V5h2V3h2V1zm0 2v2H3v2h2v2h2V7h2V5H7V3H5z"
-      fill="#e0f8d0"
-    />
-    <rect x="5" y="5" width="2" height="2" fill="#306850" />
-  </svg>
-);
-
-/**
- * Chunky 32-Bit Pixel Icons for the 3 Stacked GBA Title Buttons (Reference Screen 1)
- */
-const PixelSwordsIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
-    {/* Dark Outlines */}
-    <path
-      d="M2 2h4v2h2v2h2v2h2v2h2V8h2V6h2V4h4v4h-2v2h-2v2h-2v2h2v2h2v2h2v4h-4v-2h-2v-2h-2v-2h-4v2H8v2H6v2H2v-4h2v-2h2v-2h2v-2H6V8H4V6H2V2z"
-      fill="#081820"
-    />
-    {/* Cream Sword Blades */}
-    <path
-      d="M3 3h2v2h2v2h2v2h2v2h2V9h2V7h2V5h2V3h2v2h-2v2h-2v2h-2v2h-2v2h-2v2H9v2H7v2H5v-2h2v-2h2v-2h2v-2H9V9H7V7H5V5H3V3z"
-      fill="#e0f8d0"
-    />
-    {/* Sage Blade Shading & Crossguards */}
-    <path
-      d="M4 5h2v2h2v2h2v2H8V9H6V7H4V5zm14 0h2v2h-2v2h-2v2h-2V9h2V7h2V5zM5 15h3v3H5v-3zm11 0h3v3h-3v-3zM3 19h2v2H3v-2zm16 0h2v2h-2v-2z"
-      fill="#88c070"
-    />
-  </svg>
-);
-
-const PixelShieldIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
-    {/* Outer Shield Rim */}
-    <path
-      d="M4 2h16v10h-1v3h-2v2h-2v2h-2v2H11v-2H9v-2H7v-2H5v-3H4V2z"
-      fill="#081820"
-    />
-    <path
-      d="M5 3h14v9h-1v2h-2v2h-2v2h-4v-2H8v-2H6v-2H5V3z"
-      fill="#e0f8d0"
-    />
-    <path
-      d="M6 4h12v7h-1v2h-2v2h-2v1h-2v-1H9v-2H7v-2H6V4z"
-      fill="#183828"
-    />
-    <path
-      d="M7 5h10v5h-1v2h-2v2h-4v-2H8v-2H7V5z"
-      fill="#306850"
-    />
-    {/* Center Flame / Leaf Emblem */}
-    <path
-      d="M11 6h2v2h2v2h1v3h-2v2h-4v-2H8v-3h1V8h2V6z"
-      fill="#e0f8d0"
-    />
-    <rect x="11" y="10" width="2" height="3" fill="#306850" />
-  </svg>
-);
-
-const PixelChestIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ shapeRendering: 'crispEdges' }}>
-    {/* Isometric 3D Box Outline */}
-    <path
-      d="M9 2h6v1h3v1h2v1h2v12h-2v1h-2v1h-3v1H9v-1H6v-1H4v-1H2V5h2V4h2V3h3V2z"
-      fill="#081820"
-    />
-    {/* Top Lid Highlight */}
-    <path
-      d="M9 3h6v1h3v1h2v2h-3v1h-3v1h-4V8H7V7H4V5h2V4h3V3z"
-      fill="#88c070"
-    />
-    {/* Left & Right Isometric Box Faces */}
-    <path d="M3 8h3v1h3v1h2v9H8v-1H5v-1H3V8z" fill="#306850" />
-    <path d="M13 10h2V9h3V8h3v9h-2v1h-3v1h-3v-9z" fill="#183828" />
-    {/* Cream Edges & Center Clasp */}
-    <path
-      d="M3 7h4v1h3v1h4V8h3V7h4v1h-4v1h-3v1h-2v9h-2v-9h-2V9H7V8H3V7z"
-      fill="#e0f8d0"
-    />
-    <rect x="10" y="10" width="4" height="4" fill="#e0f8d0" />
-    <rect x="11" y="11" width="2" height="2" fill="#306850" />
-  </svg>
-);
-
 export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenGacha,
   onOpenWardrobe,
@@ -244,7 +43,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     return () => clearInterval(timer);
   }, [lastDailyClaimTime]);
 
-  // Keyboard shortcuts
+  // Global Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -261,9 +60,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         onToggleMute();
       } else if (e.code === 'KeyP') {
         e.preventDefault();
+        soundFX.playSelect();
         onOpenGacha();
+      } else if (e.code === 'KeyC') {
+        e.preventDefault();
+        soundFX.playSelect();
+        setIsCollectionMenuOpen(true);
       } else if (e.code === 'KeyT') {
         e.preventDefault();
+        soundFX.playSelect();
         onOpenTeamSelect('teams');
       }
     };
@@ -273,7 +78,17 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
   return (
     <div className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#081820] text-[#e0f8d0] flex items-center justify-center p-2 sm:p-3 select-none overflow-hidden">
-      {/* Unobtrusive Audio Mute Button Outside the GBA Screen Frame */}
+      {/* Subtle Diamond Grid Scanline Ambiance */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          backgroundImage:
+            'radial-gradient(#1c3c34 1px, transparent 1px), radial-gradient(ellipse at 50% 45%, rgba(168,40,144,0.18) 0%, transparent 65%)',
+          backgroundSize: '16px 16px, 100% 100%',
+        }}
+      />
+
+      {/* Unobtrusive Audio Mute Button Outside Console Frame */}
       <button
         onClick={() => {
           onToggleMute();
@@ -281,126 +96,130 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         }}
         aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
         title="Toggle Audio [M]"
-        className="fixed top-2.5 right-2.5 z-40 p-1.5 bg-[#081820] border-2 border-[#306850] text-[#88c070] hover:text-[#e0f8d0] cursor-pointer"
+        className="fixed top-3 right-3 z-40 p-2 bg-[#081820]/90 border-2 border-[#306850] text-[#88c070] hover:text-[#e0f8d0] hover:border-[#88c070] rounded-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer transition-colors"
       >
-        {isMuted ? <VolumeX className="w-3.5 h-3.5 text-[#a84040]" /> : <Volume2 className="w-3.5 h-3.5 text-[#88c070]" />}
+        {isMuted ? <VolumeX className="w-4 h-4 text-[#a84040]" /> : <Volume2 className="w-4 h-4 text-[#88c070]" />}
       </button>
 
-      {/* 2:3 GBA Handheld Portrait Frame (Matches Reference Screen) */}
-      <div className="relative w-full max-w-[360px] sm:max-w-[390px] h-full max-h-[820px] p-3.5 sm:p-4 flex flex-col justify-between overflow-hidden">
-        <ChamferedScreenFrameSVG />
-
-        {/* Top Header: VS CHAMP Retro GBA Arcade Pixel Logo */}
-        <header className="relative z-20 w-full shrink-0 flex items-center justify-center pt-1 pb-1 px-2">
-          <img
-            src="/logos/vschamp_logo_arcade.png"
-            alt="VS CHAMP"
-            className="w-[230px] xs:w-[260px] sm:w-[290px] h-auto max-h-[118px] sm:max-h-[132px] object-contain select-none drop-shadow-[0_0_16px_rgba(136,192,112,0.35)] drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)] filter brightness-105 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer"
-            loading="eager"
-            onClick={() => {
-              soundFX.playSelect();
-              onOpenTeamSelect('teams');
-            }}
-          />
-        </header>
-
-        {/* Central Hero Stage: Champion Cynthia Pokemon Card Cover */}
+      {/* Handheld Arcade Master Console Container (Aspect 914:1275) */}
+      <div className="relative w-full max-w-[420px] sm:max-w-[440px] h-full max-h-[860px] flex items-center justify-center">
         <div
-          onClick={() => {
-            soundFX.playSelect();
-            onOpenTeamSelect('teams');
-          }}
-          className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center p-1 sm:p-2 cursor-pointer group"
-          title="Click to challenge Champion Cynthia"
+          className="relative w-full h-full flex items-center justify-center"
+          style={{ aspectRatio: '914 / 1275' }}
         >
-          <div
-            className="relative h-full max-h-[330px] rounded-[4px] p-[2.5px] bg-[#0e221a] border-2 border-[#306850] shadow-[0_4px_16px_rgba(0,0,0,0.7),0_0_0_1px_#509878] transition-transform duration-200 group-hover:scale-[1.02] active:scale-[0.99] flex items-center justify-center overflow-hidden"
-            style={{ aspectRatio: '723 / 1024' }}
-          >
-            <img
-              src="/sprites/trainers/cynthia_cover_card.png"
-              alt="Champion Cynthia Purple Aura Card"
-              className="w-full h-full object-cover rounded-[2px] select-none"
-              loading="eager"
-            />
-            {/* Subtle GBA Holo / Gloss Glint Accent */}
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-transparent via-[#e0f8d0]/10 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-          </div>
-        </div>
+          {/* Master Key-Art Panel Graphic at Native Full Resolution */}
+          <img
+            src="/sprites/trainers/vschamp_panel_design3_hd.png"
+            alt="VS CHAMP The Anime Key-Art Master Panel"
+            className="w-full h-full object-contain pointer-events-none select-none rounded-[6px] drop-shadow-[0_12px_40px_rgba(0,0,0,0.95)]"
+            loading="eager"
+          />
 
-        {/* Bottom 3 Stacked Chamfered GBA Command Buttons (Reference Screen) */}
-        <nav className="relative z-20 w-full flex flex-col gap-2 sm:gap-2.5 shrink-0 pb-1">
-          {/* 1. DAILY BATTLE */}
+          {/* Interactive Hotspot 1: Top VS CHAMP Logo Badge */}
           <button
             type="button"
             onClick={() => {
               soundFX.playSelect();
               onOpenTeamSelect('teams');
             }}
-            data-start="true"
-            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
+            title="VS CHAMP — Challenge Today's League Champion"
+            aria-label="VS CHAMP Title Logo"
+            className="absolute top-[1.5%] left-[18%] w-[64%] h-[24%] rounded-[12px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform focus:outline-none"
+          />
+
+          {/* Interactive Hotspot 2: BATTLE NOW! Starburst Badge (Left) */}
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenTeamSelect('teams');
+            }}
+            title="Challenge Champion Cynthia Now!"
+            aria-label="Battle Now Badge"
+            className="absolute top-[54.5%] left-[7.5%] w-[23%] h-[13%] rounded-full cursor-pointer hover:scale-108 active:scale-95 hover:shadow-[0_0_16px_rgba(136,192,112,0.6)] transition-all focus:outline-none"
+          />
+
+          {/* Interactive Hotspot 3: FREE REWARDS TODAY! Starburst Badge (Right) */}
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenGacha();
+            }}
+            title={availablePacks > 0 ? `${availablePacks} Booster Packs Ready!` : 'Claim Today\'s Booster Packs!'}
+            aria-label="Free Rewards Today Badge"
+            className="absolute top-[54.5%] right-[7.5%] w-[23%] h-[13%] rounded-full cursor-pointer hover:scale-108 active:scale-95 hover:shadow-[0_0_16px_rgba(136,192,112,0.6)] transition-all focus:outline-none group"
           >
-            <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
-              <PixelSwordsIcon />
-              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
-                DAILY BATTLE
+            {/* Pulsing notification pip if booster packs are ready */}
+            {(availablePacks > 0 || dailyStatus.isAvailable) && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#a84040] border border-[#e0f8d0] rounded-full flex items-center justify-center font-pixel text-[6px] text-white animate-pulse">
+                !
               </span>
-            </div>
+            )}
           </button>
 
-          {/* 2. GAUNTLET RUN */}
+          {/* Interactive Hotspot 4: DAILY BATTLE Chamfered Command Button (Gold Frame) */}
+          <button
+            type="button"
+            data-start="true"
+            onClick={() => {
+              soundFX.playSelect();
+              onOpenTeamSelect('teams');
+            }}
+            title="Play Today's Daily Battle against Champion Cynthia"
+            aria-label="Daily Battle"
+            className="absolute top-[67%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-amber-400/12 hover:shadow-[0_0_20px_rgba(240,200,48,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
+          >
+            {/* Subtle glow edge outline on hover */}
+            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#f0c830]/60 transition-colors pointer-events-none" />
+          </button>
+
+          {/* Interactive Hotspot 5: GAUNTLET RUN Chamfered Command Button (Cyan Frame) */}
           <button
             type="button"
             onClick={() => {
               soundFX.playSelect();
               onOpenTeamSelect('lead');
             }}
-            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
+            title="Start Gauntlet Run with Custom Lead Pokémon"
+            aria-label="Gauntlet Run"
+            className="absolute top-[78.5%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-cyan-400/12 hover:shadow-[0_0_20px_rgba(56,184,232,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
           >
-            <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
-              <PixelShieldIcon />
-              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
-                GAUNTLET RUN
-              </span>
-            </div>
+            {/* Subtle glow edge outline on hover */}
+            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#38b8e8]/60 transition-colors pointer-events-none" />
           </button>
 
-          {/* 3. COLLECTION */}
+          {/* Interactive Hotspot 6: COLLECTION Chamfered Command Button (Coral Frame) */}
           <button
             type="button"
             onClick={() => {
               soundFX.playSelect();
               setIsCollectionMenuOpen(true);
             }}
-            className="relative w-full h-[52px] sm:h-[58px] px-4 flex items-center cursor-pointer group active:translate-y-[1px]"
+            title="Open Collection Vault: Booster Packs & Trainer Sprite Wardrobe"
+            aria-label="Collection"
+            className="absolute top-[90%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-rose-400/12 hover:shadow-[0_0_20px_rgba(232,88,88,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
           >
-            <ChamferedButtonFrameSVG />
-            <div className="relative z-10 w-full flex items-center pl-2 sm:pl-3 gap-3.5 sm:gap-4">
-              <PixelChestIcon />
-              <span className="font-pixel text-[13px] xs:text-[15px] sm:text-[17px] text-[#e0f8d0] gba-btn-text drop-shadow-[2px_2px_0_#081820] whitespace-nowrap">
-                COLLECTION
-              </span>
-            </div>
+            {/* Subtle glow edge outline on hover */}
+            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#e85858]/60 transition-colors pointer-events-none" />
           </button>
-        </nav>
+        </div>
 
         {/* Collection Sub-Menu Overlay (Booster Packs vs. Trainer Sprite Studio) */}
         {isCollectionMenuOpen && (
           <div
-            className="absolute inset-0 z-30 bg-[#081820]/95 flex flex-col items-center justify-center p-4"
+            className="absolute inset-0 z-50 bg-[#081820]/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-label="Collection Hub"
           >
-            <div className="w-full gba-frame-cream p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between border-b-2 border-[#306850] pb-2">
-                <span className="font-pixel text-xs text-[#081820]">COLLECTION VAULT</span>
-                <span className="gba-hanko-seal text-[8px]">蔵</span>
+            <div className="w-full max-w-[340px] gba-frame-cream p-5 flex flex-col gap-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.9)]">
+              <div className="flex items-center justify-between border-b-2 border-[#306850] pb-2.5">
+                <span className="font-pixel text-[13px] text-[#081820] font-bold">COLLECTION VAULT</span>
+                <span className="gba-hanko-seal text-[9px]">蔵</span>
               </div>
 
-              <p className="font-pixel text-[8px] text-[#306850] leading-relaxed">
+              <p className="font-pixel text-[8.5px] text-[#306850] leading-relaxed">
                 Open daily TCG Booster Packs or customize your Gen 3 Trainer &amp; Pokémon gear.
               </p>
 
@@ -411,10 +230,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   setIsCollectionMenuOpen(false);
                   onOpenGacha();
                 }}
-                className="w-full gba-btn py-3 px-3 text-xs flex items-center justify-between"
+                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer group"
               >
                 <span>▶ BOOSTER PACKS</span>
-                <span className="text-[8px] text-[#88c070]">
+                <span className="text-[9px] text-[#88c070] group-hover:text-[#e0f8d0]">
                   {availablePacks > 0 ? `${availablePacks} READY` : dailyStatus.isAvailable ? 'FREE READY' : dailyStatus.formattedTime}
                 </span>
               </button>
@@ -426,10 +245,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   setIsCollectionMenuOpen(false);
                   onOpenWardrobe();
                 }}
-                className="w-full gba-btn py-3 px-3 text-xs flex items-center justify-between"
+                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer group"
               >
                 <span>▶ SPRITE STUDIO &amp; GEAR</span>
-                <span className="text-[8px] text-[#88c070]">WARDROBE</span>
+                <span className="text-[9px] text-[#88c070] group-hover:text-[#e0f8d0]">WARDROBE</span>
               </button>
 
               <button
@@ -438,7 +257,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   soundFX.playSelect();
                   setIsCollectionMenuOpen(false);
                 }}
-                className="w-full gba-select-btn py-2.5 text-[10px] text-center mt-1"
+                className="w-full gba-select-btn py-2.5 text-[10px] text-center mt-1 cursor-pointer"
               >
                 BACK TO TITLE
               </button>
