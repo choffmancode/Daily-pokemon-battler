@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * VS CHAMP — The Anime Key-Art Master Panel Title Screen
+ * VS CHAMP — Complete Anime Key-Art Master Panel (Mobile Optimized)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -77,10 +77,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   }, [onOpenTeamSelect, onToggleMute, onOpenGacha]);
 
   return (
-    <div className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#081820] text-[#e0f8d0] flex items-center justify-center p-2 sm:p-3 select-none overflow-hidden">
-      {/* Subtle Diamond Grid Scanline Ambiance */}
+    <div className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#081820] text-[#e0f8d0] flex items-center justify-center p-1 sm:p-2 select-none overflow-hidden touch-manipulation">
+      {/* Background Diamond Lattice Ambient Texture */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-40"
+        className="absolute inset-0 pointer-events-none opacity-30"
         style={{
           backgroundImage:
             'radial-gradient(#1c3c34 1px, transparent 1px), radial-gradient(ellipse at 50% 45%, rgba(168,40,144,0.18) 0%, transparent 65%)',
@@ -96,26 +96,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         }}
         aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
         title="Toggle Audio [M]"
-        className="fixed top-3 right-3 z-40 p-2 bg-[#081820]/90 border-2 border-[#306850] text-[#88c070] hover:text-[#e0f8d0] hover:border-[#88c070] rounded-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer transition-colors"
+        className="fixed top-2.5 right-2.5 z-40 p-2 bg-[#081820]/90 border-2 border-[#306850] text-[#88c070] active:scale-95 rounded-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
       >
         {isMuted ? <VolumeX className="w-4 h-4 text-[#a84040]" /> : <Volume2 className="w-4 h-4 text-[#88c070]" />}
       </button>
 
-      {/* Handheld Arcade Master Console Container (Aspect 914:1275) */}
-      <div className="relative w-full max-w-[420px] sm:max-w-[440px] h-full max-h-[860px] flex items-center justify-center">
+      {/* Mobile-First Full-Height Fit Container — Nothing Cut Off Top or Bottom */}
+      <div className="relative h-full max-h-full w-auto max-w-full flex items-center justify-center">
         <div
-          className="relative w-full h-full flex items-center justify-center"
-          style={{ aspectRatio: '914 / 1275' }}
+          className="relative h-full max-h-full w-auto flex items-center justify-center"
+          style={{ aspectRatio: '917 / 1348' }}
         >
-          {/* Master Key-Art Panel Graphic at Native Full Resolution */}
+          {/* Full High-Definition Master Key-Art Panel Graphic — Full Aspect Ratio Intact */}
           <img
-            src="/sprites/trainers/vschamp_panel_design3_hd.png"
-            alt="VS CHAMP The Anime Key-Art Master Panel"
-            className="w-full h-full object-contain pointer-events-none select-none rounded-[6px] drop-shadow-[0_12px_40px_rgba(0,0,0,0.95)]"
+            src="/sprites/trainers/vschamp_panel_master_complete.png"
+            alt="VS CHAMP Master Panel"
+            className="h-full w-auto max-h-full max-w-full object-contain pointer-events-none select-none rounded-[6px] shadow-[0_8px_32px_rgba(0,0,0,0.95)]"
             loading="eager"
           />
 
-          {/* Interactive Hotspot 1: Top VS CHAMP Logo Badge */}
+          {/* Interactive Touch Target 1: Top VS CHAMP Logo Badge */}
           <button
             type="button"
             onClick={() => {
@@ -124,10 +124,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title="VS CHAMP — Challenge Today's League Champion"
             aria-label="VS CHAMP Title Logo"
-            className="absolute top-[1.5%] left-[18%] w-[64%] h-[24%] rounded-[12px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform focus:outline-none"
+            className="absolute top-[1.2%] left-[18%] w-[64%] h-[21%] rounded-[12px] cursor-pointer active:scale-[0.98] focus:outline-none"
           />
 
-          {/* Interactive Hotspot 2: BATTLE NOW! Starburst Badge (Left) */}
+          {/* Interactive Touch Target 2: BATTLE NOW! Starburst Badge (Left) */}
           <button
             type="button"
             onClick={() => {
@@ -136,10 +136,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title="Challenge Champion Cynthia Now!"
             aria-label="Battle Now Badge"
-            className="absolute top-[54.5%] left-[7.5%] w-[23%] h-[13%] rounded-full cursor-pointer hover:scale-108 active:scale-95 hover:shadow-[0_0_16px_rgba(136,192,112,0.6)] transition-all focus:outline-none"
+            className="absolute top-[54.5%] left-[7%] w-[24%] h-[11.5%] rounded-full cursor-pointer active:scale-95 focus:outline-none"
           />
 
-          {/* Interactive Hotspot 3: FREE REWARDS TODAY! Starburst Badge (Right) */}
+          {/* Interactive Touch Target 3: FREE REWARDS TODAY! Starburst Badge (Right) */}
           <button
             type="button"
             onClick={() => {
@@ -148,17 +148,17 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title={availablePacks > 0 ? `${availablePacks} Booster Packs Ready!` : 'Claim Today\'s Booster Packs!'}
             aria-label="Free Rewards Today Badge"
-            className="absolute top-[54.5%] right-[7.5%] w-[23%] h-[13%] rounded-full cursor-pointer hover:scale-108 active:scale-95 hover:shadow-[0_0_16px_rgba(136,192,112,0.6)] transition-all focus:outline-none group"
+            className="absolute top-[54.5%] right-[7%] w-[24%] h-[11.5%] rounded-full cursor-pointer active:scale-95 focus:outline-none"
           >
-            {/* Pulsing notification pip if booster packs are ready */}
+            {/* Notification pip if booster packs are ready */}
             {(availablePacks > 0 || dailyStatus.isAvailable) && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#a84040] border border-[#e0f8d0] rounded-full flex items-center justify-center font-pixel text-[6px] text-white animate-pulse">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#a84040] border border-[#e0f8d0] rounded-full flex items-center justify-center font-pixel text-[6px] text-white">
                 !
               </span>
             )}
           </button>
 
-          {/* Interactive Hotspot 4: DAILY BATTLE Chamfered Command Button (Gold Frame) */}
+          {/* Interactive Touch Target 4: DAILY BATTLE Command Button (Gold Frame) — No Sticky Hover */}
           <button
             type="button"
             data-start="true"
@@ -168,13 +168,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title="Play Today's Daily Battle against Champion Cynthia"
             aria-label="Daily Battle"
-            className="absolute top-[67%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-amber-400/12 hover:shadow-[0_0_20px_rgba(240,200,48,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
-          >
-            {/* Subtle glow edge outline on hover */}
-            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#f0c830]/60 transition-colors pointer-events-none" />
-          </button>
+            className="absolute top-[66.2%] left-[14%] w-[72%] h-[8.5%] rounded-[8px] cursor-pointer active:scale-[0.98] active:opacity-85 focus:outline-none"
+          />
 
-          {/* Interactive Hotspot 5: GAUNTLET RUN Chamfered Command Button (Cyan Frame) */}
+          {/* Interactive Touch Target 5: GAUNTLET RUN Command Button (Cyan Frame) — No Sticky Hover */}
           <button
             type="button"
             onClick={() => {
@@ -183,13 +180,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title="Start Gauntlet Run with Custom Lead Pokémon"
             aria-label="Gauntlet Run"
-            className="absolute top-[78.5%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-cyan-400/12 hover:shadow-[0_0_20px_rgba(56,184,232,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
-          >
-            {/* Subtle glow edge outline on hover */}
-            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#38b8e8]/60 transition-colors pointer-events-none" />
-          </button>
+            className="absolute top-[76.8%] left-[14%] w-[72%] h-[8.5%] rounded-[8px] cursor-pointer active:scale-[0.98] active:opacity-85 focus:outline-none"
+          />
 
-          {/* Interactive Hotspot 6: COLLECTION Chamfered Command Button (Coral Frame) */}
+          {/* Interactive Touch Target 6: COLLECTION Command Button (Coral Frame) — No Sticky Hover */}
           <button
             type="button"
             onClick={() => {
@@ -198,11 +192,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             title="Open Collection Vault: Booster Packs & Trainer Sprite Wardrobe"
             aria-label="Collection"
-            className="absolute top-[90%] left-[15.5%] w-[69%] h-[9.2%] rounded-[8px] cursor-pointer hover:bg-rose-400/12 hover:shadow-[0_0_20px_rgba(232,88,88,0.45)] active:translate-y-[1.5px] transition-all focus:outline-none group"
-          >
-            {/* Subtle glow edge outline on hover */}
-            <span className="absolute inset-0 rounded-[8px] border-2 border-transparent group-hover:border-[#e85858]/60 transition-colors pointer-events-none" />
-          </button>
+            className="absolute top-[87.3%] left-[14%] w-[72%] h-[8.5%] rounded-[8px] cursor-pointer active:scale-[0.98] active:opacity-85 focus:outline-none"
+          />
         </div>
 
         {/* Collection Sub-Menu Overlay (Booster Packs vs. Trainer Sprite Studio) */}
@@ -230,10 +221,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   setIsCollectionMenuOpen(false);
                   onOpenGacha();
                 }}
-                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer group"
+                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer active:scale-[0.99]"
               >
                 <span>▶ BOOSTER PACKS</span>
-                <span className="text-[9px] text-[#88c070] group-hover:text-[#e0f8d0]">
+                <span className="text-[9px] text-[#88c070]">
                   {availablePacks > 0 ? `${availablePacks} READY` : dailyStatus.isAvailable ? 'FREE READY' : dailyStatus.formattedTime}
                 </span>
               </button>
@@ -245,10 +236,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   setIsCollectionMenuOpen(false);
                   onOpenWardrobe();
                 }}
-                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer group"
+                className="w-full gba-btn py-3 px-3.5 text-[11px] flex items-center justify-between cursor-pointer active:scale-[0.99]"
               >
                 <span>▶ SPRITE STUDIO &amp; GEAR</span>
-                <span className="text-[9px] text-[#88c070] group-hover:text-[#e0f8d0]">WARDROBE</span>
+                <span className="text-[9px] text-[#88c070]">WARDROBE</span>
               </button>
 
               <button
@@ -257,7 +248,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   soundFX.playSelect();
                   setIsCollectionMenuOpen(false);
                 }}
-                className="w-full gba-select-btn py-2.5 text-[10px] text-center mt-1 cursor-pointer"
+                className="w-full gba-select-btn py-2.5 text-[10px] text-center mt-1 cursor-pointer active:scale-[0.99]"
               >
                 BACK TO TITLE
               </button>
