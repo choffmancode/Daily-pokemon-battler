@@ -74,6 +74,8 @@ describe('Advanced Battle AI Decision Engine (8-Layer CFRU Matrix)', () => {
   it('helper classification functions recognize setup, recovery, hazard, and pivot moves', () => {
     assert.strictEqual(isSetupMove('swords_dance'), true);
     assert.strictEqual(isSetupMove('calm_mind'), true);
+    assert.strictEqual(isSetupMove('cotton_guard'), true);
+    assert.strictEqual(isSetupMove('growth'), true);
     assert.strictEqual(isSetupMove('tackle'), false);
 
     assert.strictEqual(isRecoveryMove('recover'), true);
@@ -146,6 +148,63 @@ describe('Advanced Battle AI Decision Engine (8-Layer CFRU Matrix)', () => {
       assert.ok(scores[0].reasons.includes('STAT_AT_MAX'));
       assert.strictEqual(scores[1].score, 0);
       assert.ok(scores[1].reasons.includes('SUBSTITUTE_INVALID'));
+    });
+
+    it('invalidates moves according to held items, taunt, and choice lock', () => {
+      // 1. Air Balloon Ground immunity
+      const aiEarthquake = createDummyPokemon({
+        moves: [
+          createDamagingMove('earthquake', 'Earthquake', 'Ground', 100),
+          createDamagingMove('rock_slide', 'Rock Slide', 'Rock', 75),
+        ],
+      });
+      const balloonPlayer = createDummyPokemon({ heldItem: 'Air Balloon' });
+      const balloonScores = scoreAIMoves(aiEarthquake, balloonPlayer, [aiEarthquake]);
+      assert.strictEqual(balloonScores[0].score, 0);
+      assert.ok(balloonScores[0].reasons.includes('AIR_BALLOON_IMMUNITY'));
+      assert.ok(balloonScores[1].score > 0);
+
+      // 2. Taunted AI cannot use status moves
+      const tauntedAI = createDummyPokemon({
+        isTaunted: true,
+        tauntTurns: 3,
+        moves: [
+          createStatusMove('toxic', 'Toxic', 'Poison'),
+          createDamagingMove('sludge_bomb', 'Sludge Bomb', 'Poison', 90, 'Special'),
+        ],
+      });
+      const player = createDummyPokemon();
+      const tauntScores = scoreAIMoves(tauntedAI, player, [tauntedAI]);
+      assert.strictEqual(tauntScores[0].score, 0);
+      assert.ok(tauntScores[0].reasons.includes('TAUNTED_STATUS'));
+      assert.ok(tauntScores[1].score > 0);
+
+      // 3. Assault Vest AI cannot use status moves
+      const vestAI = createDummyPokemon({
+        heldItem: 'Assault Vest',
+        moves: [
+          createStatusMove('recover', 'Recover', 'Normal'),
+          createDamagingMove('surf', 'Surf', 'Water', 90, 'Special'),
+        ],
+      });
+      const vestScores = scoreAIMoves(vestAI, player, [vestAI]);
+      assert.strictEqual(vestScores[0].score, 0);
+      assert.ok(vestScores[0].reasons.includes('ASSAULT_VEST_STATUS'));
+      assert.ok(vestScores[1].score > 0);
+
+      // 4. Choice locked AI must choose only locked move
+      const choiceAI = createDummyPokemon({
+        heldItem: 'Choice Band',
+        choiceLockedMove: 'outrage',
+        moves: [
+          createDamagingMove('earthquake', 'Earthquake', 'Ground', 100),
+          createDamagingMove('outrage', 'Outrage', 'Dragon', 120),
+        ],
+      });
+      const choiceScores = scoreAIMoves(choiceAI, player, [choiceAI]);
+      assert.strictEqual(choiceScores[0].score, -999);
+      assert.ok(choiceScores[0].reasons.includes('CHOICE_LOCKED'));
+      assert.ok(choiceScores[1].score > 0);
     });
   });
 

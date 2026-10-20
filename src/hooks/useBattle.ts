@@ -458,6 +458,79 @@ export function useBattle({
         aiAction
       );
 
+      // If the switch was from a fast pivot (Volt Switch/U-turn) and opponent attacked the incoming Pokémon:
+      if (nextState.turnMoves && nextState.turnMoves.length > 0) {
+        const oppMove = nextState.turnMoves[0];
+        // 1. Immediately place the new incoming Pokémon onto the field
+        setLiveCombatLog(nextState.combatLog);
+        onUpdateBattle({
+          ...nextState,
+          playerTeam: nextState.playerTeam.map((p, idx) =>
+            idx === targetIndex ? { ...p, currentHp: target.currentHp, fainted: false } : p
+          ),
+        });
+
+        // 2. Play opponent counter-attack animation against incoming Pokémon
+        setOpponentAnimClass(oppMove.moveCategory === 'Physical' ? 'anim-tackle-opponent' : 'anim-special-pulse');
+
+        addTimeout(() => {
+          setActiveVFX({
+            id: `vfx_pivot_${Date.now()}`,
+            moveName: oppMove.moveName,
+            type: oppMove.moveType || 'Normal',
+            category: oppMove.moveCategory || 'Physical',
+            targetSide: 'player',
+          });
+
+          setPlayerAnimClass('anim-damage-shake');
+          setMidTurnPlayerHp(oppMove.defenderHpRemaining);
+
+          setFloatingDamage({
+            id: `dmg_pivot_${Date.now()}`,
+            side: 'player',
+            damage: oppMove.damageDealt,
+            isCrit: oppMove.isCrit,
+            effectiveness: oppMove.effectiveness,
+          });
+
+          if (oppMove.isCrit || oppMove.effectiveness > 1) {
+            setIsScreenFlareActive(true);
+            addTimeout(() => setIsScreenFlareActive(false), 500);
+          }
+
+          if (oppMove.effectiveness > 1) {
+            soundFX.playSuperEffective();
+          } else {
+            soundFX.playHit();
+          }
+
+          setScreenShake(true);
+          haptics.hit();
+          addTimeout(() => setScreenShake(false), 240);
+        }, 240);
+
+        addTimeout(() => {
+          setActiveVFX(null);
+          setPlayerAnimClass('');
+          setOpponentAnimClass('');
+
+          const incomingFainted = Boolean(oppMove.defenderFainted || oppMove.defenderHpRemaining <= 0);
+          if (incomingFainted) {
+            setPlayerAnimClass('anim-faint-sink');
+            soundFX.playFaint();
+            haptics.faint();
+          }
+
+          addTimeout(() => {
+            setLiveCombatLog(nextState.combatLog);
+            onUpdateBattle(nextState);
+            setSelectedSubMenu(nextState.phase === 'faint_switch_player' ? 'switch' : 'moves');
+            setIsTurnProcessing(false);
+          }, 350);
+        }, 620);
+        return;
+      }
+
       // Update combat log & state immediately so the new Pokémon's sprite appears without delay
       setLiveCombatLog(nextState.combatLog);
       onUpdateBattle(nextState);

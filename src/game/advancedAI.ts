@@ -37,6 +37,8 @@ export function isSetupMove(moveId: string): boolean {
     'iron_defense',
     'quiver_dance',
     'shell_smash',
+    'cotton_guard',
+    'growth',
   ];
   return setupIds.includes(moveId.toLowerCase());
 }
@@ -137,15 +139,41 @@ export function scoreAIMoves(
     // =========================================================================
     // LAYER 1: Hard Invalidation Filter (AI_CHECK_BAD_MOVE)
     // =========================================================================
+    // Choice item lock: If choice locked into another move, cannot use this move
+    if (aiActive.choiceLockedMove && aiActive.choiceLockedMove !== move.id) {
+      scoredMoves.push({ moveIndex: i, move, score: -999, reasons: ['CHOICE_LOCKED'] });
+      continue;
+    }
+
+    // Taunt invalidation: Cannot use status moves while taunted
+    if (aiActive.isTaunted && move.category === 'Status') {
+      scoredMoves.push({ moveIndex: i, move, score: 0, reasons: ['TAUNTED_STATUS'] });
+      continue;
+    }
+
+    // Assault Vest invalidation: Cannot use status moves while holding Assault Vest
+    if (
+      aiActive.heldItem?.toLowerCase().includes('assault vest') &&
+      !aiActive.heldItemConsumed &&
+      move.category === 'Status'
+    ) {
+      scoredMoves.push({ moveIndex: i, move, score: 0, reasons: ['ASSAULT_VEST_STATUS'] });
+      continue;
+    }
+
     if (move.category !== 'Status') {
-      // Type immunity check (0x effectiveness)
+      // Type immunity check (0x effectiveness, Levitate, Air Balloon)
       const effectiveness = calculateTypeEffectiveness(move.type, playerActive.types);
       const isLevitateGround =
         move.type === 'Ground' &&
-        (playerActive.types.includes('Flying') || playerActive.ability === 'Levitate');
+        (playerActive.types.includes('Flying') ||
+          playerActive.ability === 'Levitate' ||
+          (playerActive.heldItem?.toLowerCase().includes('air balloon') && !playerActive.heldItemConsumed));
 
       if (effectiveness === 0 || isLevitateGround) {
-        scoredMoves.push({ moveIndex: i, move, score: 0, reasons: ['TYPE_IMMUNITY_ZERO'] });
+        const isAirBalloon = move.type === 'Ground' && Boolean(playerActive.heldItem?.toLowerCase().includes('air balloon') && !playerActive.heldItemConsumed);
+        const reason = isAirBalloon ? 'AIR_BALLOON_IMMUNITY' : 'TYPE_IMMUNITY_ZERO';
+        scoredMoves.push({ moveIndex: i, move, score: 0, reasons: [reason] });
         continue;
       }
     } else {

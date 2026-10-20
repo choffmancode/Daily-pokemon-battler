@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pokemon, PokemonType } from '../../game/types';
 import { GBA_TYPE_COLORS, TYPE_ABBR } from '../../game/data/typeChart';
 
@@ -42,12 +42,50 @@ const BattleStatPlateComponent: React.FC<BattleStatPlateProps> = ({
 
   const statusMeta = pokemon.statusCondition ? STATUS_BADGE_MAP[pokemon.statusCondition] : null;
 
+  const activeStatDeltas = useMemo(() => {
+    if (!pokemon.statStages) return [];
+    const deltas: { label: string; stage: number }[] = [];
+    const mapping: [keyof typeof pokemon.statStages, string][] = [
+      ['attack', 'ATK'],
+      ['defense', 'DEF'],
+      ['spAtk', 'SPA'],
+      ['spDef', 'SPD'],
+      ['speed', 'SPE'],
+    ];
+    for (const [key, label] of mapping) {
+      const stage = pokemon.statStages[key] ?? 0;
+      if (stage !== 0) {
+        deltas.push({ label, stage });
+      }
+    }
+    return deltas;
+  }, [pokemon.statStages]);
+
   return (
     <div
       onClick={() => onOpenSummary(pokemon, isOpponent)}
       title={`Click to inspect ${pokemon.species} (${Math.max(0, pokemon.currentHp)}/${pokemon.maxHp} HP)`}
       className="relative w-[220px] xs:w-[232px] sm:w-[244px] shrink-0 cursor-pointer select-none active:translate-y-[1px] transition-transform z-20"
     >
+      {/* Floating Stat Stage Modifiers (e.g. Swords Dance +2, Intimidate -1) */}
+      {activeStatDeltas.length > 0 && (
+        <div
+          className={`absolute -top-3 ${
+            isOpponent ? 'left-3' : 'right-3'
+          } flex items-center gap-1 z-30 pointer-events-none`}
+        >
+          {activeStatDeltas.map(({ label, stage }) => (
+            <span
+              key={label}
+              className={`font-pixel text-[5.5px] font-bold px-1 py-[1px] rounded-[2px] border border-[#081820] shadow-[0_1px_2px_rgba(0,0,0,0.6)] ${
+                stage > 0 ? 'bg-[#306850] text-[#e0f8d0]' : 'bg-[#a84040] text-[#f8d8d8]'
+              }`}
+            >
+              {stage > 0 ? `▲+${stage}` : `▼${stage}`} {label}
+            </span>
+          ))}
+        </div>
+      )}
       {/* Chamfered Cream GBA Stat Box + Lower 3D Slate-Green Pointer Ledge (Matches Reference Image) */}
       <svg
         className="w-full h-full absolute inset-0 pointer-events-none"
@@ -168,6 +206,22 @@ const BattleStatPlateComponent: React.FC<BattleStatPlateProps> = ({
               title="Confused"
             >
               CONF
+            </span>
+          )}
+          {pokemon.isTaunted && (
+            <span
+              className="font-pixel text-[6px] font-bold text-[#f8fcf8] px-1 py-[1.5px] rounded-[2px] border border-[#102018] leading-none shrink-0 bg-[#c86828]"
+              title={`Taunted (${pokemon.tauntTurns ?? 0} turns)`}
+            >
+              TAUNT
+            </span>
+          )}
+          {Boolean(pokemon.substituteHp && pokemon.substituteHp > 0) && (
+            <span
+              className="font-pixel text-[6px] font-bold text-[#e0f8d0] px-1 py-[1.5px] rounded-[2px] border border-[#102018] leading-none shrink-0 bg-[#306850]"
+              title={`Substitute (${pokemon.substituteHp} HP)`}
+            >
+              SUB
             </span>
           )}
           <div className="w-[78%] flex items-center bg-[#244034] border-[1.5px] border-[#142820] rounded-full pl-2 pr-1 py-[1.5px] shadow-[inset_0_1px_0_rgba(16,32,24,0.65)]">

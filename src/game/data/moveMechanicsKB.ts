@@ -37,6 +37,17 @@ export interface MoveMechanicsEntry {
   causesConfusion?: boolean;
   entryHazard?: 'stealth_rock' | 'spikes' | 'toxic_spikes' | 'sticky_web';
   clearsHazards?: boolean;
+  isScreen?: 'reflect' | 'light_screen';
+  isHaze?: boolean;
+  isPhazing?: boolean;
+  isSelfFaint?: boolean;
+  isSuckerPunch?: boolean;
+  isFacade?: boolean;
+  isPsyshock?: boolean;
+  isKnockOff?: boolean;
+  isTaunt?: boolean;
+  isPerishSong?: boolean;
+  isTrickRoom?: boolean;
 }
 
 const ALL_COMBAT_STATS_BOOST_1: StatChangeSpec[] = [
@@ -1207,6 +1218,232 @@ export const MOVE_MECHANICS_KB: Record<string, MoveMechanicsEntry> = {
     name: 'Rock Climb',
     secondaryEffect: { chance: 20, confusionChance: 20 },
   },
+
+  /* ============================================================================
+   * 15. COMPETITIVE & ROTATING CHAMPION MECHANIC MOVES
+   * ============================================================================ */
+  cotton_guard: {
+    id: 'cotton_guard',
+    name: 'Cotton Guard',
+    statChange: { stat: 'defense', stages: 3, target: 'self' },
+  },
+  growth: {
+    id: 'growth',
+    name: 'Growth',
+    statChanges: [
+      { stat: 'attack', stages: 1, target: 'self' },
+      { stat: 'spAtk', stages: 1, target: 'self' },
+    ],
+  },
+  shell_smash: {
+    id: 'shell_smash',
+    name: 'Shell Smash',
+    statChanges: [
+      { stat: 'attack', stages: 2, target: 'self' },
+      { stat: 'spAtk', stages: 2, target: 'self' },
+      { stat: 'speed', stages: 2, target: 'self' },
+      { stat: 'defense', stages: -1, target: 'self' },
+      { stat: 'spDef', stages: -1, target: 'self' },
+    ],
+  },
+  quiver_dance: {
+    id: 'quiver_dance',
+    name: 'Quiver Dance',
+    statChanges: [
+      { stat: 'spAtk', stages: 1, target: 'self' },
+      { stat: 'spDef', stages: 1, target: 'self' },
+      { stat: 'speed', stages: 1, target: 'self' },
+    ],
+  },
+  haze: {
+    id: 'haze',
+    name: 'Haze',
+    isHaze: true,
+  },
+  defog: {
+    id: 'defog',
+    name: 'Defog',
+    clearsHazards: true,
+    statChange: { stat: 'evasion', stages: -1, target: 'opponent' },
+  },
+  reflect: {
+    id: 'reflect',
+    name: 'Reflect',
+    isScreen: 'reflect',
+  },
+  light_screen: {
+    id: 'light_screen',
+    name: 'Light Screen',
+    isScreen: 'light_screen',
+  },
+  head_smash: {
+    id: 'head_smash',
+    name: 'Head Smash',
+    recoil: 0.5,
+  },
+  head_charge: {
+    id: 'head_charge',
+    name: 'Head Charge',
+    recoil: 0.25,
+  },
+  dual_chop: {
+    id: 'dual_chop',
+    name: 'Dual Chop',
+    multiHit: [2, 2],
+  },
+  drill_run: {
+    id: 'drill_run',
+    name: 'Drill Run',
+    critRatioBonus: 1,
+  },
+  aqua_tail: {
+    id: 'aqua_tail',
+    name: 'Aqua Tail',
+  },
+  megahorn: {
+    id: 'megahorn',
+    name: 'Megahorn',
+  },
+  rock_wrecker: {
+    id: 'rock_wrecker',
+    name: 'Rock Wrecker',
+    rechargeTurn: true,
+  },
+  explosion: {
+    id: 'explosion',
+    name: 'Explosion',
+    isSelfFaint: true,
+  },
+  sucker_punch: {
+    id: 'sucker_punch',
+    name: 'Sucker Punch',
+    priority: 1,
+    isSuckerPunch: true,
+  },
+  pursuit: {
+    id: 'pursuit',
+    name: 'Pursuit',
+  },
+  knock_off: {
+    id: 'knock_off',
+    name: 'Knock Off',
+    isKnockOff: true,
+  },
+  facade: {
+    id: 'facade',
+    name: 'Facade',
+    isFacade: true,
+  },
+  psyshock: {
+    id: 'psyshock',
+    name: 'Psyshock',
+    isPsyshock: true,
+  },
+  foul_play: {
+    id: 'foul_play',
+    name: 'Foul Play',
+  },
+  low_kick: {
+    id: 'low_kick',
+    name: 'Low Kick',
+  },
+  heavy_slam: {
+    id: 'heavy_slam',
+    name: 'Heavy Slam',
+  },
+  whirlwind: {
+    id: 'whirlwind',
+    name: 'Whirlwind',
+    priority: -6,
+    isPhazing: true,
+  },
+  dragon_tail: {
+    id: 'dragon_tail',
+    name: 'Dragon Tail',
+    priority: -6,
+    isPhazing: true,
+  },
+  perish_song: {
+    id: 'perish_song',
+    name: 'Perish Song',
+    isPerishSong: true,
+  },
+  trick_room: {
+    id: 'trick_room',
+    name: 'Trick Room',
+    priority: -7,
+    isTrickRoom: true,
+  },
+  taunt: {
+    id: 'taunt',
+    name: 'Taunt',
+    isTaunt: true,
+  },
+  ingrain: {
+    id: 'ingrain',
+    name: 'Ingrain',
+    healFraction: 0.0625,
+  },
+  leech_seed: {
+    id: 'leech_seed',
+    name: 'Leech Seed',
+  },
+  pain_split: {
+    id: 'pain_split',
+    name: 'Pain Split',
+  },
+  acrobatics: {
+    id: 'acrobatics',
+    name: 'Acrobatics',
+  },
+  bounce: {
+    id: 'bounce',
+    name: 'Bounce',
+    secondaryEffect: { chance: 30, statusEffect: 'paralysis' },
+  },
+  counter: {
+    id: 'counter',
+    name: 'Counter',
+    priority: -5,
+  },
+  mirror_coat: {
+    id: 'mirror_coat',
+    name: 'Mirror Coat',
+    priority: -5,
+  },
+  metal_burst: {
+    id: 'metal_burst',
+    name: 'Metal Burst',
+  },
+  endeavor: {
+    id: 'endeavor',
+    name: 'Endeavor',
+  },
+  sleep_talk: {
+    id: 'sleep_talk',
+    name: 'Sleep Talk',
+  },
+  trick: {
+    id: 'trick',
+    name: 'Trick',
+  },
+  return: {
+    id: 'return',
+    name: 'Return',
+  },
+  solar_beam: {
+    id: 'solar_beam',
+    name: 'Solar Beam',
+  },
+  hidden_power_fire: {
+    id: 'hidden_power_fire',
+    name: 'Hidden Power Fire',
+  },
+  softboiled: {
+    id: 'softboiled',
+    name: 'Soft-Boiled',
+    healFraction: 0.5,
+  },
 };
 
 export function normalizeMoveKey(idOrName: string): string {
@@ -1280,5 +1517,16 @@ export function enrichMoveWithMechanics(move: Move): Move {
     causesConfusion: move.causesConfusion ?? spec.causesConfusion,
     entryHazard: move.entryHazard ?? spec.entryHazard,
     clearsHazards: move.clearsHazards ?? spec.clearsHazards,
+    isScreen: move.isScreen ?? spec.isScreen,
+    isHaze: move.isHaze ?? spec.isHaze,
+    isPhazing: move.isPhazing ?? spec.isPhazing,
+    isSelfFaint: move.isSelfFaint ?? spec.isSelfFaint,
+    isSuckerPunch: move.isSuckerPunch ?? spec.isSuckerPunch,
+    isFacade: move.isFacade ?? spec.isFacade,
+    isPsyshock: move.isPsyshock ?? spec.isPsyshock,
+    isKnockOff: move.isKnockOff ?? spec.isKnockOff,
+    isTaunt: move.isTaunt ?? spec.isTaunt,
+    isPerishSong: move.isPerishSong ?? spec.isPerishSong,
+    isTrickRoom: move.isTrickRoom ?? spec.isTrickRoom,
   };
 }

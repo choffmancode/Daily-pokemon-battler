@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { BattleTurnLog, WeatherType } from '../../game/types';
 
 interface BattleTurnFeedProps {
@@ -19,7 +19,7 @@ interface BattleTurnFeedProps {
 }
 
 /**
- * Compact 3-Line GBA Top Action Log Plate (Matches Battle Screen v4 Mockup)
+ * Compact GBA Top Action Log Plate (Scrollable Turn History)
  * Docked directly below the 3-segment top header plate and toggled via [LOG] or [L].
  */
 export const BattleTurnFeed: React.FC<BattleTurnFeedProps> = ({
@@ -30,26 +30,31 @@ export const BattleTurnFeed: React.FC<BattleTurnFeedProps> = ({
   opponentName = 'OPPONENT',
   isOpen = true,
 }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const displayLines = useMemo(() => {
     const cleaned = logs
       .map((entry) => entry.message.trim())
       .filter((msg) => msg.length > 0 && !msg.startsWith('---'));
 
-    if (cleaned.length >= 3) {
-      return cleaned.slice(-3);
+    if (cleaned.length > 0) {
+      return cleaned;
     }
 
-    const fallback: string[] = [
+    return [
       `CHAMPION CYNTHIA sent out ${opponentName.toUpperCase()}!`,
       `Go! ${playerName.toUpperCase()}! Prepare for battle.`,
       weather !== 'Clear'
         ? `${weather.toUpperCase()} continues to fall on the arena.`
         : `Turn ${String(currentTurn).padStart(2, '0')} — Awaiting your command.`,
     ];
-
-    const combined = [...fallback, ...cleaned];
-    return combined.slice(-3);
   }, [logs, currentTurn, weather, playerName, opponentName]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [displayLines.length, currentTurn]);
 
   if (!isOpen) return null;
 
@@ -87,12 +92,15 @@ export const BattleTurnFeed: React.FC<BattleTurnFeedProps> = ({
         <polyline points="377,54 373,58" stroke="#88c070" strokeWidth="1.5" />
       </svg>
 
-      {/* 3 Combat Log Lines */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-center px-3.5 py-1.5 gap-[3px] overflow-hidden">
+      {/* Scrollable Combat Log Lines */}
+      <div
+        ref={scrollRef}
+        className="relative z-10 w-full h-full flex flex-col px-3.5 py-1.5 gap-[3px] overflow-y-auto gba-scrollbar"
+      >
         {displayLines.map((line, index) => (
           <div
-            key={`${currentTurn}-${index}-${line}`}
-            className="font-pixel text-[7.5px] xs:text-[8px] sm:text-[8.5px] leading-[1.35] text-[#e0f8d0] truncate tracking-tight drop-shadow-[1px_1px_0_#081820]"
+            key={`${index}-${line}`}
+            className="font-pixel text-[7.5px] xs:text-[8px] sm:text-[8.5px] leading-[1.35] text-[#e0f8d0] shrink-0 tracking-tight drop-shadow-[1px_1px_0_#081820]"
           >
             <span className="text-[#88c070] mr-1">&gt;</span>
             <span>{line}</span>

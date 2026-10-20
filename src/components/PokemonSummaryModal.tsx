@@ -189,6 +189,46 @@ export const PokemonSummaryModal: React.FC<PokemonSummaryModalProps> = ({
                 {currentMon.abilityDescription}
               </p>
             </div>
+
+            {/* Held Item Strip */}
+            <div className="bg-[#d0e4b0] border border-[#306850] p-1.5 mt-1">
+              <div className="flex items-center justify-between">
+                <span className="gba-title-text text-[9px] font-bold text-[#183828] uppercase">
+                  ITEM: {currentMon.heldItem || 'None'}
+                </span>
+                {currentMon.heldItemConsumed && (
+                  <span className="font-pixel text-[6px] px-1 py-[0.5px] bg-[#a84040] text-[#e0f8d0] rounded-[2px] font-bold">
+                    CONSUMED / LOST
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Active Volatiles Strip (In-Battle Modifiers) */}
+            {(currentMon.isTaunted || (currentMon.perishCount !== undefined && currentMon.perishCount > 0) || currentMon.substituteHp || currentMon.choiceLockedMove) && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {currentMon.isTaunted && (
+                  <span className="font-pixel text-[6px] px-1.5 py-[1px] bg-[#c86828] text-[#f8fcf8] rounded-[2px] font-bold border border-[#081820]">
+                    TAUNTED ({currentMon.tauntTurns ?? 0}T)
+                  </span>
+                )}
+                {currentMon.perishCount !== undefined && currentMon.perishCount > 0 && (
+                  <span className="font-pixel text-[6px] px-1.5 py-[1px] bg-[#702088] text-[#f8fcf8] rounded-[2px] font-bold border border-[#081820]">
+                    PERISH ({currentMon.perishCount})
+                  </span>
+                )}
+                {currentMon.substituteHp && currentMon.substituteHp > 0 ? (
+                  <span className="font-pixel text-[6px] px-1.5 py-[1px] bg-[#306850] text-[#e0f8d0] rounded-[2px] font-bold border border-[#081820]">
+                    SUB ({currentMon.substituteHp} HP)
+                  </span>
+                ) : null}
+                {currentMon.choiceLockedMove && (
+                  <span className="font-pixel text-[6px] px-1.5 py-[1px] bg-[#284860] text-[#e0f8d0] rounded-[2px] font-bold border border-[#081820]">
+                    CHOICE LOCKED
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

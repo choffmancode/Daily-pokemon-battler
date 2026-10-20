@@ -416,3 +416,24 @@
   image-rendering: crisp-edges;
   shape-rendering: crispEdges;
 }
+
+/* GBA Retro Micro Scrollbar */
+.gba-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #386850 rgba(8, 24, 32, 0.6);
+}
+.gba-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.gba-scrollbar::-webkit-scrollbar-track {
+  background: rgba(8, 24, 32, 0.6);
+  border-radius: 2px;
+}
+.gba-scrollbar::-webkit-scrollbar-thumb {
+  background: #386850;
+  border-radius: 2px;
+}
+.gba-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #88c070;
+}
+

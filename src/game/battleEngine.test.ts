@@ -23,6 +23,7 @@ import {
   equipTrainerBase,
 } from './gachaEngine.ts';
 import { BEGINNER_TEAMS, CHAMPION_RED_TEAM } from './constants.ts';
+import { Pokemon, PokemonType } from './types.ts';
 
 test('type effectiveness accurately matches Pokémon mechanics', () => {
   assert.equal(calculateTypeEffectiveness('Fire', ['Grass']), 2);
@@ -775,6 +776,47 @@ test('pivot moves (Volt Switch, U-turn) deal damage and switch out attacker safe
   assert.notEqual(afterOppVoltSwitch.opponentActiveIndex, initialOppActiveIdx, 'Opponent must switch to a bench teammate');
 });
 
+test('fast Volt Switch switches player mon, and opponent queued attack hits the incoming replacement Pokémon', () => {
+  const p1 = createTestMon('p1', 'Jolteon', ['Electric'], { hp: 250, attack: 150, defense: 150, spAtk: 300, spDef: 200, speed: 350 });
+  const p2 = createTestMon('p2', 'Snorlax', ['Normal'], { hp: 500, attack: 250, defense: 200, spAtk: 150, spDef: 200, speed: 100 });
+  const benchMon = createTestMon('p_bench', 'Alakazam', ['Psychic'], { hp: 300, attack: 150, defense: 150, spAtk: 300, spDef: 150, speed: 300 });
+
+  const voltSwitch = { id: 'volt_switch', name: 'Volt Switch', type: 'Electric' as const, category: 'Special' as const, power: 70, accuracy: 100, pp: 20, maxPp: 20, description: '' };
+  const bodySlam = { id: 'body_slam', name: 'Body Slam', type: 'Normal' as const, category: 'Physical' as const, power: 85, accuracy: 100, pp: 15, maxPp: 15, description: '' };
+
+  const state = initializeBattle([p1, benchMon], [p2]);
+  state.playerTeam[0].moves = [voltSwitch];
+  state.opponentTeam[0].moves = [bodySlam];
+
+  // Turn 1: Fast Volt Switch deals damage to Snorlax, player must pivot out
+  const afterVolt = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterVolt.pendingPivot, true, 'pendingPivot is true');
+  assert.ok(afterVolt.pendingOpponentAction !== undefined, 'Opponent queued action is preserved');
+  assert.ok(afterVolt.opponentTeam[0].currentHp < 500, 'Snorlax took damage from Volt Switch');
+
+  // Turn 1b: Player sends out Alakazam. Snorlax Body Slam MUST hit Alakazam!
+  const fullBenchHp = afterVolt.playerTeam[1].currentHp;
+  const afterSwitch = executeBattleTurn(afterVolt, { type: 'switch', targetPokemonIndex: 1 }, { type: 'switch', targetPokemonIndex: 0 }, { rng: () => 0.5 });
+
+  assert.equal(afterSwitch.playerActiveIndex, 1, 'Alakazam is now active');
+  assert.ok(afterSwitch.playerTeam[1].currentHp < fullBenchHp, 'Incoming Alakazam took damage from Snorlax Body Slam');
+  assert.equal(afterSwitch.turnMoves?.[0]?.moveName, 'Body Slam', 'Opponent move was executed against incoming Pokémon');
+  assert.equal(afterSwitch.pendingPivot, false, 'pendingPivot is cleared');
+
+  // Slow Volt Switch: Snorlax outspeeds, attacks Jolteon first. Incoming Alakazam takes no hit!
+  p1.baseStats.speed = 50; // Slower than Snorlax
+  const slowState = initializeBattle([p1, benchMon], [p2]);
+  slowState.playerTeam[0].moves = [voltSwitch];
+  slowState.opponentTeam[0].moves = [bodySlam];
+
+  const afterSlowVolt = executeBattleTurn(slowState, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.ok(afterSlowVolt.playerTeam[0].currentHp < 250, 'Jolteon took Body Slam before moving');
+  assert.equal(afterSlowVolt.pendingOpponentAction, undefined, 'No pending action because Snorlax already moved');
+
+  const afterSlowSwitch = executeBattleTurn(afterSlowVolt, { type: 'switch', targetPokemonIndex: 1 }, { type: 'switch', targetPokemonIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterSlowSwitch.playerTeam[1].currentHp, fullBenchHp, 'Alakazam enters safely with zero damage on slow pivot');
+});
+
 test('infallible accuracy moves (Aura Sphere) bypass accuracy checks', () => {
   const state = initializeBattle(BEGINNER_TEAMS[0].team, CHAMPION_RED_TEAM);
   state.weather = 'Clear';
@@ -1160,6 +1202,277 @@ test('entry hazards: Stealth Rock, Spikes, Toxic Spikes, Sticky Web, and Hazard 
   );
   assert.deepEqual(afterDefog.opponentSideConditions, {}, 'Defog clears all hazards on opponent side');
   assert.deepEqual(afterDefog.playerSideConditions, {}, 'Defog clears all hazards on player side');
+});
+
+/* ============================================================================
+ * EXPANDED BATTLE ENGINE MECHANICS SUITE: HELD ITEMS & COMPETITIVE MOVES
+ * ============================================================================ */
+
+function createTestMon(
+  id: string,
+  species: string,
+  types: PokemonType[],
+  baseStats: { hp: number; attack: number; defense: number; spAtk: number; spDef: number; speed: number },
+  overrides?: Partial<Pokemon>
+): Pokemon {
+  return {
+    id,
+    species,
+    nationalDex: 1,
+    types,
+    level: 100,
+    baseStats,
+    currentHp: baseStats.hp,
+    maxHp: baseStats.hp,
+    ability: 'Synchronize',
+    abilityDescription: '',
+    moves: [],
+    spriteFront: '',
+    spriteBack: '',
+    fainted: false,
+    ...overrides,
+  };
+}
+
+test('Held Items: Life Orb boosts damage by 1.3x and inflicts 10% recoil', () => {
+  const p1 = createTestMon('p1', 'Lucario', ['Fighting', 'Steel'], { hp: 300, attack: 300, defense: 200, spAtk: 300, spDef: 200, speed: 250 });
+  const p2 = createTestMon('p2', 'Blissey', ['Normal'], { hp: 600, attack: 100, defense: 200, spAtk: 100, spDef: 300, speed: 100 });
+  const move = { id: 'close_combat', name: 'Close Combat', type: 'Fighting' as const, category: 'Physical' as const, power: 120, accuracy: 100, pp: 5, maxPp: 5, description: '' };
+
+  const normDmg = calculateDamage(p1, p2, move, { rngVariance: 1.0, forceCrit: false });
+  p1.heldItem = 'Life Orb';
+  const loDmg = calculateDamage(p1, p2, move, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(Math.abs(loDmg.damage - Math.floor(normDmg.damage * 1.3)) <= 1);
+
+  // In turn execution, attacker loses 10% max HP
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].heldItem = 'Life Orb';
+  state.playerTeam[0].moves = [move];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+  const startHp = state.playerTeam[0].currentHp;
+  const next = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(next.playerTeam[0].currentHp, startHp - Math.floor(p1.maxHp * 0.1));
+});
+
+test('Held Items: Choice Band, Choice Specs, and Choice Scarf boosts', () => {
+  const p1 = createTestMon('p1', 'Garchomp', ['Dragon', 'Ground'], { hp: 350, attack: 300, defense: 200, spAtk: 200, spDef: 200, speed: 200 });
+  const p2 = createTestMon('p2', 'Snorlax', ['Normal'], { hp: 450, attack: 200, defense: 200, spAtk: 200, spDef: 200, speed: 100 });
+  const physMove = { id: 'earthquake', name: 'Earthquake', type: 'Ground' as const, category: 'Physical' as const, power: 100, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+  const specMove = { id: 'dragon_pulse', name: 'Dragon Pulse', type: 'Dragon' as const, category: 'Special' as const, power: 85, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  // Choice Band
+  const unboostedPhys = calculateDamage(p1, p2, physMove, { rngVariance: 1.0, forceCrit: false });
+  p1.heldItem = 'Choice Band';
+  const boostedPhys = calculateDamage(p1, p2, physMove, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(boostedPhys.damage > unboostedPhys.damage);
+
+  // Choice Specs
+  p1.heldItem = undefined;
+  const unboostedSpec = calculateDamage(p1, p2, specMove, { rngVariance: 1.0, forceCrit: false });
+  p1.heldItem = 'Choice Specs';
+  const boostedSpec = calculateDamage(p1, p2, specMove, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(boostedSpec.damage > unboostedSpec.damage);
+
+  // Choice Scarf
+  p1.heldItem = undefined;
+  assert.equal(calculateEffectiveSpeed(p1), 200);
+  p1.heldItem = 'Choice Scarf';
+  assert.equal(calculateEffectiveSpeed(p1), 300);
+});
+
+test('Held Items: Assault Vest and Eviolite bolster defensive calculations', () => {
+  const p1 = createTestMon('p1', 'Alakazam', ['Psychic'], { hp: 250, attack: 150, defense: 150, spAtk: 350, spDef: 200, speed: 300 });
+  const p2 = createTestMon('p2', 'Rhydon', ['Ground', 'Rock'], { hp: 350, attack: 300, defense: 300, spAtk: 100, spDef: 150, speed: 100 });
+  const specMove = { id: 'psychic', name: 'Psychic', type: 'Psychic' as const, category: 'Special' as const, power: 90, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  const normDmg = calculateDamage(p1, p2, specMove, { rngVariance: 1.0, forceCrit: false });
+  p2.heldItem = 'Assault Vest';
+  const avDmg = calculateDamage(p1, p2, specMove, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(avDmg.damage < normDmg.damage, 'Assault Vest reduces special damage taken');
+
+  p2.heldItem = 'Eviolite';
+  const evDmg = calculateDamage(p1, p2, specMove, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(evDmg.damage < normDmg.damage, 'Eviolite reduces damage taken on unevolved Pokémon');
+});
+
+test('Held Items: Focus Sash and Sturdy survive 1-hit lethal knockout with 1 HP', () => {
+  const p1 = createTestMon('p1', 'Charizard', ['Fire'], { hp: 300, attack: 300, defense: 200, spAtk: 300, spDef: 200, speed: 300 });
+  const p2 = createTestMon('p2', 'Shedinja', ['Ghost'], { hp: 100, attack: 100, defense: 50, spAtk: 100, spDef: 50, speed: 100 });
+  const move = { id: 'flamethrower', name: 'Flamethrower', type: 'Fire' as const, category: 'Special' as const, power: 150, accuracy: 100, pp: 5, maxPp: 5, description: '' };
+
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [move];
+  state.opponentTeam[0].heldItem = 'Focus Sash';
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  const next = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(next.opponentTeam[0].currentHp, 1, 'Focus Sash holder survives lethal hit with 1 HP');
+  assert.equal(next.opponentTeam[0].heldItemConsumed, true);
+  assert.equal(next.opponentTeam[0].fainted, false);
+});
+
+test('Held Items: Air Balloon grants Ground immunity and pops when damaged', () => {
+  const p1 = createTestMon('p1', 'Garchomp', ['Dragon', 'Ground'], { hp: 300, attack: 300, defense: 200, spAtk: 200, spDef: 200, speed: 300 });
+  const p2 = createTestMon('p2', 'Lucario', ['Steel', 'Fighting'], { hp: 300, attack: 300, defense: 200, spAtk: 200, spDef: 200, speed: 200 });
+  p2.heldItem = 'Air Balloon';
+  const eq = { id: 'earthquake', name: 'Earthquake', type: 'Ground' as const, category: 'Physical' as const, power: 100, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  const res = calculateDamage(p1, p2, eq);
+  assert.equal(res.damage, 0, 'Air Balloon makes holder completely immune to Ground moves');
+  assert.equal(res.effectiveness, 0);
+
+  // When hit by a non-Ground attack, Air Balloon pops
+  const rockSlide = { id: 'rock_slide', name: 'Rock Slide', type: 'Rock' as const, category: 'Physical' as const, power: 75, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [rockSlide];
+  state.opponentTeam[0].heldItem = 'Air Balloon';
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  const next = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(next.opponentTeam[0].heldItemConsumed, true, 'Air Balloon is consumed after being hit');
+});
+
+test('Held Items: Type Resist Berries (Yache Berry) halve super effective damage', () => {
+  const p1 = createTestMon('p1', 'Glaceon', ['Ice'], { hp: 300, attack: 150, defense: 200, spAtk: 350, spDef: 200, speed: 200 });
+  const p2 = createTestMon('p2', 'Garchomp', ['Dragon', 'Ground'], { hp: 350, attack: 300, defense: 200, spAtk: 200, spDef: 200, speed: 250 });
+  const iceBeam = { id: 'ice_beam', name: 'Ice Beam', type: 'Ice' as const, category: 'Special' as const, power: 90, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  const normDmg = calculateDamage(p1, p2, iceBeam, { rngVariance: 1.0, forceCrit: false });
+  p2.heldItem = 'Yache Berry';
+  const yacheDmg = calculateDamage(p1, p2, iceBeam, { rngVariance: 1.0, forceCrit: false });
+  assert.equal(yacheDmg.damage, Math.floor(normDmg.damage * 0.5), 'Yache Berry halves incoming 4x super effective Ice damage');
+});
+
+test('Held Items: Weakness Policy raises Attack and Sp. Atk by +2 on super effective hit', () => {
+  const p1 = createTestMon('p1', 'Glaceon', ['Ice'], { hp: 300, attack: 150, defense: 200, spAtk: 200, spDef: 200, speed: 250 });
+  const p2 = createTestMon('p2', 'Dragonite', ['Dragon', 'Flying'], { hp: 500, attack: 300, defense: 250, spAtk: 250, spDef: 250, speed: 200 });
+  p2.heldItem = 'Weakness Policy';
+  const iceBeam = { id: 'ice_beam', name: 'Ice Beam', type: 'Ice' as const, category: 'Special' as const, power: 40, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [iceBeam];
+  state.opponentTeam[0].heldItem = 'Weakness Policy';
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  const next = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(next.opponentTeam[0].statStages?.attack, 2);
+  assert.equal(next.opponentTeam[0].statStages?.spAtk, 2);
+  assert.equal(next.opponentTeam[0].heldItemConsumed, true);
+});
+
+test('Held Items: Leftovers, Black Sludge, Sitrus Berry, and Status Orbs end-of-turn residuals', () => {
+  const p1 = createTestMon('p1', 'Gengar', ['Ghost', 'Poison'], { hp: 300, attack: 200, defense: 200, spAtk: 300, spDef: 200, speed: 300 });
+  const p2 = createTestMon('p2', 'Snorlax', ['Normal'], { hp: 400, attack: 200, defense: 200, spAtk: 200, spDef: 200, speed: 100 });
+
+  // 1. Leftovers heal 1/16 max HP
+  const state = initializeBattle([p1], [p2]);
+  state.opponentTeam[0].currentHp = 300;
+  state.opponentTeam[0].heldItem = 'Leftovers';
+  state.playerTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+  const afterLeftovers = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterLeftovers.opponentTeam[0].currentHp, 300 + Math.floor(400 / 16));
+
+  // 2. Sitrus Berry triggers at <= 50% HP
+  afterLeftovers.opponentTeam[0].currentHp = 150;
+  afterLeftovers.opponentTeam[0].heldItem = 'Sitrus Berry';
+  afterLeftovers.opponentTeam[0].heldItemConsumed = false;
+  const afterSitrus = executeBattleTurn(afterLeftovers, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterSitrus.opponentTeam[0].currentHp, 150 + Math.floor(400 * 0.25));
+  assert.equal(afterSitrus.opponentTeam[0].heldItemConsumed, true);
+
+  // 3. Flame Orb burns holder
+  afterSitrus.opponentTeam[0].heldItem = 'Flame Orb';
+  afterSitrus.opponentTeam[0].heldItemConsumed = false;
+  afterSitrus.opponentTeam[0].statusCondition = null;
+  const afterFlame = executeBattleTurn(afterSitrus, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterFlame.opponentTeam[0].statusCondition, 'burn');
+});
+
+test('Held Items: Rocky Helmet, Rough Skin, and Knock Off', () => {
+  const p1 = createTestMon('p1', 'Lucario', ['Fighting'], { hp: 300, attack: 300, defense: 200, spAtk: 200, spDef: 200, speed: 300 });
+  const p2 = createTestMon('p2', 'Ferrothorn', ['Grass', 'Steel'], { hp: 1000, attack: 200, defense: 300, spAtk: 100, spDef: 300, speed: 50 }, { ability: 'Iron Barbs', heldItem: 'Rocky Helmet' });
+  const closeCombat = { id: 'close_combat', name: 'Close Combat', type: 'Fighting' as const, category: 'Physical' as const, power: 120, accuracy: 100, pp: 5, maxPp: 5, description: '' };
+
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [closeCombat];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  const next = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  // Attacker takes 1/6 (Rocky Helmet) + 1/8 (Iron Barbs) of 300 HP = 50 + 37 = 87 damage
+  const expectedRecoil = Math.floor(300 / 6) + Math.floor(300 / 8);
+  assert.equal(next.playerTeam[0].currentHp, 300 - expectedRecoil);
+
+  // Knock Off removes Rocky Helmet
+  const knockOff = { id: 'knock_off', name: 'Knock Off', type: 'Dark' as const, category: 'Physical' as const, power: 65, accuracy: 100, pp: 20, maxPp: 20, description: '' };
+  next.playerTeam[0].moves[0] = knockOff;
+  const afterKnockOff = executeBattleTurn(next, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterKnockOff.opponentTeam[0].heldItemConsumed, true, 'Knock Off consumed and removed defender item');
+});
+
+test('Move Mechanics: Facade, Psyshock, Sucker Punch, and Dual Screens', () => {
+  const p1 = createTestMon('p1', 'Snorlax', ['Normal'], { hp: 400, attack: 300, defense: 200, spAtk: 150, spDef: 250, speed: 100 });
+  const p2 = createTestMon('p2', 'Blissey', ['Normal'], { hp: 600, attack: 100, defense: 50, spAtk: 200, spDef: 350, speed: 150 });
+  const facade = { id: 'facade', name: 'Facade', type: 'Normal' as const, category: 'Physical' as const, power: 70, accuracy: 100, pp: 20, maxPp: 20, description: '' };
+  const psyshock = { id: 'psyshock', name: 'Psyshock', type: 'Psychic' as const, category: 'Special' as const, power: 80, accuracy: 100, pp: 10, maxPp: 10, description: '' };
+
+  // 1. Facade doubles power to 140 when burned and ignores burn physical cut
+  const normFacade = calculateDamage(p1, p2, facade, { rngVariance: 1.0, forceCrit: false });
+  p1.statusCondition = 'burn';
+  const burnedFacade = calculateDamage(p1, p2, facade, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(Math.abs(burnedFacade.damage - (normFacade.damage * 2 - 3)) <= 1, 'Burned Facade deals 2x damage and ignores burn penalty');
+
+  // 2. Psyshock targets physical Defense (Blissey has 50 def vs 350 spDef)
+  p1.statusCondition = null;
+  const psyshockDmg = calculateDamage(p1, p2, psyshock, { rngVariance: 1.0, forceCrit: false });
+  assert.ok(psyshockDmg.damage > 200, 'Psyshock shreds low physical defense targets');
+
+  // 3. Dual Screens (Reflect halves physical damage, Light Screen halves special damage)
+  const screenPhys = calculateDamage(p1, p2, facade, { rngVariance: 1.0, forceCrit: false, defenderSideConditions: { reflectTurns: 5 } });
+  assert.equal(screenPhys.damage, Math.floor(normFacade.damage * 0.5), 'Reflect halves incoming physical damage');
+
+  // 4. Sucker Punch succeeds against attacks and fails against status
+  const suckerPunch = { id: 'sucker_punch', name: 'Sucker Punch', type: 'Dark' as const, category: 'Physical' as const, power: 70, accuracy: 100, pp: 5, maxPp: 5, description: '' };
+  const tackle = { id: 'tackle', name: 'Tackle', type: 'Normal' as const, category: 'Physical' as const, power: 40, accuracy: 100, pp: 35, maxPp: 35, description: '' };
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [suckerPunch];
+  state.opponentTeam[0].moves = [tackle];
+
+  const suckerSuccess = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.ok(suckerSuccess.lastMoveUsed?.moveName === 'Tackle');
+  assert.ok(suckerSuccess.turnMoves?.some((tm) => tm.moveName === 'Sucker Punch' && tm.damageDealt > 0));
+
+  // Against Status move, Sucker Punch fails
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+  const suckerFail = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.ok(suckerFail.combatLog.some((cl) => cl.message.includes('But it failed!')));
+});
+
+test('Move Mechanics: Haze, Taunt, Perish Song, and Trick Room field dynamics', () => {
+  const p1 = createTestMon('p1', 'Spiritomb', ['Ghost', 'Dark'], { hp: 300, attack: 200, defense: 200, spAtk: 200, spDef: 200, speed: 50 });
+  const p2 = createTestMon('p2', 'Jolteon', ['Electric'], { hp: 300, attack: 150, defense: 150, spAtk: 300, spDef: 200, speed: 350 });
+
+  // 1. Haze resets all stat boosts on both sides
+  p1.statStages = { hp: 0, attack: 3, defense: 2, spAtk: 0, spDef: 0, speed: 0 };
+  p2.statStages = { hp: 0, attack: -2, defense: 0, spAtk: 4, spDef: 0, speed: 0 };
+  const state = initializeBattle([p1], [p2]);
+  state.playerTeam[0].moves = [{ id: 'haze', name: 'Haze', type: 'Ice', category: 'Status', power: 0, accuracy: 100, pp: 30, maxPp: 30, description: '' }];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+  const afterHaze = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterHaze.playerTeam[0].statStages?.attack, 0);
+  assert.equal(afterHaze.opponentTeam[0].statStages?.spAtk, 0);
+
+  // 2. Taunt disables status moves for 3 turns
+  afterHaze.playerTeam[0].moves[0] = { id: 'taunt', name: 'Taunt', type: 'Dark', category: 'Status', power: 0, accuracy: 100, pp: 20, maxPp: 20, description: '' };
+  const afterTaunt = executeBattleTurn(afterHaze, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterTaunt.opponentTeam[0].isTaunted, true);
+  assert.equal(afterTaunt.opponentTeam[0].tauntTurns, 2);
+
+  // 3. Trick Room reverses speed order
+  assert.ok(calculateEffectiveSpeed(p2) > calculateEffectiveSpeed(p1), 'Jolteon normally outspeeds Spiritomb');
+  afterTaunt.playerTeam[0].moves[0] = { id: 'trick_room', name: 'Trick Room', type: 'Psychic', category: 'Status', power: 0, accuracy: 100, pp: 5, maxPp: 5, description: '' };
+  const afterTR = executeBattleTurn(afterTaunt, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterTR.trickRoomTurns, 4); // Set to 5 and decremented at end of turn
 });
 
 

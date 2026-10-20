@@ -88,9 +88,6 @@ export function getPokemonStatDisplayList(mon: Pokemon): FormattedStatDisplay[] 
       effective = Math.max(1, Math.floor(effective * 0.5));
     }
 
-    const isBoosted = stage > 0;
-    const isReduced = stage < 0 || isParalyzedSpeed;
-
     let multiplierText = `Base: ${base}`;
     if (stage !== 0) {
       const multStr = mult.toFixed(mult % 1 === 0 ? 1 : 2);
@@ -99,6 +96,35 @@ export function getPokemonStatDisplayList(mon: Pokemon): FormattedStatDisplay[] 
     if (isParalyzedSpeed) {
       multiplierText += ' [PRZ ×0.5]';
     }
+
+    let isItemBoosted = false;
+    if (mon.heldItem && !mon.heldItemConsumed) {
+      const itemKey = mon.heldItem.toLowerCase();
+      if (key === 'attack' && itemKey.includes('choice band')) {
+        effective = Math.floor(effective * 1.5);
+        multiplierText += ' [Band ×1.5]';
+        isItemBoosted = true;
+      } else if (key === 'spAtk' && itemKey.includes('choice specs')) {
+        effective = Math.floor(effective * 1.5);
+        multiplierText += ' [Specs ×1.5]';
+        isItemBoosted = true;
+      } else if (key === 'speed' && itemKey.includes('choice scarf')) {
+        effective = Math.floor(effective * 1.5);
+        multiplierText += ' [Scarf ×1.5]';
+        isItemBoosted = true;
+      } else if (key === 'spDef' && itemKey.includes('assault vest')) {
+        effective = Math.floor(effective * 1.5);
+        multiplierText += ' [Vest ×1.5]';
+        isItemBoosted = true;
+      } else if ((key === 'defense' || key === 'spDef') && itemKey.includes('eviolite')) {
+        effective = Math.floor(effective * 1.5);
+        multiplierText += ' [Eviolite ×1.5]';
+        isItemBoosted = true;
+      }
+    }
+
+    const isBoosted = stage > 0 || isItemBoosted;
+    const isReduced = stage < 0 || isParalyzedSpeed;
 
     results.push({
       key,

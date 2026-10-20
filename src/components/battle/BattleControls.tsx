@@ -85,7 +85,22 @@ const BattleControlsComponent: React.FC<BattleControlsProps> = ({
             const typeCol = GBA_TYPE_COLORS[move.type] || GBA_TYPE_COLORS.Normal;
             const typeCode = TYPE_ABBR[move.type] || 'NORM';
             const isOutOfPP = move.pp <= 0;
-            const disabled = isTurnProcessing || isOutOfPP || !isAwaitingPlayerInput;
+            const isTauntLocked = Boolean(playerMon.isTaunted && move.category === 'Status');
+            const isChoiceLocked = Boolean(playerMon.choiceLockedMove && playerMon.choiceLockedMove !== move.id);
+            const isAssaultVestLocked = Boolean(
+              playerMon.heldItem?.toLowerCase().includes('assault vest') &&
+              !playerMon.heldItemConsumed &&
+              move.category === 'Status'
+            );
+            const isMoveRestricted = isTauntLocked || isChoiceLocked || isAssaultVestLocked;
+            const disabled = isTurnProcessing || isOutOfPP || isMoveRestricted || !isAwaitingPlayerInput;
+            const restrictionLabel = isChoiceLocked
+              ? 'LOCKED'
+              : isTauntLocked
+              ? 'TAUNTED'
+              : isAssaultVestLocked
+              ? 'AV LOCKED'
+              : null;
 
             return (
               <button
@@ -182,17 +197,23 @@ const BattleControlsComponent: React.FC<BattleControlsProps> = ({
                     </span>
                   </div>
 
-                  {/* Bottom-Right Angled Effectiveness Plate Tab */}
+                  {/* Bottom-Right Angled Effectiveness or Lockout Tab */}
                   <div
                     className="w-[52%] h-full flex items-center justify-center pl-2 border-t border-l border-[#081820]"
                     style={{
-                      backgroundColor: eff.bg,
-                      color: eff.text,
+                      backgroundColor: restrictionLabel
+                        ? isTauntLocked
+                          ? '#c86828'
+                          : isChoiceLocked
+                          ? '#284860'
+                          : '#404850'
+                        : eff.bg,
+                      color: restrictionLabel ? '#f8fcf8' : eff.text,
                       clipPath: 'polygon(16% 0, 100% 0, 100% 100%, 0 100%)',
                     }}
                   >
                     <span className="font-pixel text-[7.5px] font-bold uppercase leading-none tracking-tighter whitespace-nowrap drop-shadow-[1px_1px_0_rgba(0,0,0,0.45)]">
-                      {eff.label}
+                      {restrictionLabel || eff.label}
                     </span>
                   </div>
                 </div>

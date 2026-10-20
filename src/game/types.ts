@@ -75,6 +75,17 @@ export interface Move {
   causesConfusion?: boolean; // 100% confusion on hit (Confuse Ray, Sweet Kiss, Supersonic, Swagger)
   entryHazard?: 'stealth_rock' | 'spikes' | 'toxic_spikes' | 'sticky_web'; // Sets entry hazard on opposing side
   clearsHazards?: boolean; // Clears entry hazards (Rapid Spin, Defog)
+  isScreen?: 'reflect' | 'light_screen'; // Dual screens (Reflect / Light Screen)
+  isHaze?: boolean; // Resets all stat stage changes on both sides (Haze)
+  isPhazing?: boolean; // Forces target to switch out (Whirlwind, Roar, Dragon Tail)
+  isSelfFaint?: boolean; // User faints upon successful execution (Explosion, Self-Destruct)
+  isSuckerPunch?: boolean; // Fails if opponent does not select an attack move (Sucker Punch)
+  isFacade?: boolean; // Doubles power to 140 if user is burned, poisoned, or paralyzed (Facade)
+  isPsyshock?: boolean; // Special move calculating damage against physical Defense (Psyshock, Psystrike)
+  isKnockOff?: boolean; // Removes target's held item and deals 1.5x damage if item held (Knock Off)
+  isTaunt?: boolean; // Prevents target from using status moves for 3 turns (Taunt)
+  isPerishSong?: boolean; // All active Pokemon faint in 3 turns (Perish Song)
+  isTrickRoom?: boolean; // Reverses speed brackets for 5 turns (Trick Room)
 }
 
 export interface PokemonStats {
@@ -120,6 +131,12 @@ export interface Pokemon {
     evasion?: number;
   };
   fainted: boolean;
+  heldItem?: string;
+  heldItemConsumed?: boolean;
+  choiceLockedMove?: string;
+  isTaunted?: boolean;
+  tauntTurns?: number;
+  perishCount?: number;
   equippedCosmetics?: {
     head?: string;
     accessory?: string;
@@ -132,6 +149,9 @@ export interface SideConditions {
   spikes?: number; // 0 - 3 layers
   toxicSpikes?: number; // 0 - 2 layers
   stickyWeb?: boolean;
+  reflectTurns?: number;
+  lightScreenTurns?: number;
+  tailwindTurns?: number;
 }
 
 export interface TeamPreset {
@@ -176,6 +196,8 @@ export interface BattleState {
   winner?: 'player' | 'opponent' | null;
   pendingPivot?: boolean;
   pendingBatonPass?: boolean;
+  pendingOpponentAction?: BattleAction;
+  trickRoomTurns?: number;
   playerSideConditions?: SideConditions;
   opponentSideConditions?: SideConditions;
   combatLog: BattleTurnLog[];

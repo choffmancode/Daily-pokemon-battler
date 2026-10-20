@@ -146,7 +146,14 @@ export function calculateEffectiveStat(mon: Pokemon, stat: StatKey): number {
 /**
  * Calculates in-battle effective Speed considering stat stages and paralysis (Gen 3 standard)
  */
-export function calculateEffectiveSpeed(mon: Pokemon): number {
+/**
+ * Calculates in-battle effective Speed considering stat stages, status, items, abilities, and field effects
+ */
+export function calculateEffectiveSpeed(
+  mon: Pokemon,
+  weather?: WeatherType,
+  sideConditions?: SideConditions
+): number {
   let speed = mon.baseStats.speed;
   const stage = mon.statStages?.speed || 0;
   speed = Math.floor(speed * getStatStageMultiplier(stage));
@@ -154,6 +161,20 @@ export function calculateEffectiveSpeed(mon: Pokemon): number {
   if (mon.statusCondition === 'paralysis') {
     speed = Math.floor(speed * 0.5);
   }
+  // Choice Scarf: 1.5x speed
+  if (mon.heldItem === 'Choice Scarf' && !mon.heldItemConsumed) {
+    speed = Math.floor(speed * 1.5);
+  }
+  // Unburden: 2x speed after held item is consumed
+  if (mon.ability === 'Unburden' && mon.heldItemConsumed) {
+    speed = Math.floor(speed * 2);
+  }
+  // Weather speed abilities
+  if (weather === 'Rain' && mon.ability === 'Swift Swim') speed *= 2;
+  if (weather === 'Sun' && mon.ability === 'Chlorophyll') speed *= 2;
+  if (weather === 'Sand' && mon.ability === 'Sand Rush') speed *= 2;
+  // Tailwind
+  if (sideConditions?.tailwindTurns && sideConditions.tailwindTurns > 0) speed *= 2;
   return Math.max(1, speed);
 }
 
@@ -177,19 +198,107 @@ export function isImmuneToStatus(mon: Pokemon, status: StatusCondition): boolean
 /**
  * Calculates accurate Gen 3 Pokemon damage with STAB, type effectiveness, weather, burn, and critical hits
  */
+export interface DamageCalculationOptions {
+  rngVariance?: number;
+  forceCrit?: boolean;
+  weather?: WeatherType;
+  isHail?: boolean;
+  defenderSideConditions?: SideConditions;
+}
+
+const TYPE_BOOST_ITEMS: Record<string, PokemonType> = {
+  'never-melt ice': 'Ice',
+  'never_melt_ice': 'Ice',
+  'nevermeltice': 'Ice',
+  'magnet': 'Electric',
+  'charcoal': 'Fire',
+  'mystic water': 'Water',
+  'mystic_water': 'Water',
+  'miracle seed': 'Grass',
+  'miracle_seed': 'Grass',
+  'black belt': 'Fighting',
+  'black_belt': 'Fighting',
+  'soft sand': 'Ground',
+  'soft_sand': 'Ground',
+  'sharp beak': 'Flying',
+  'sharp_beak': 'Flying',
+  'twisted spoon': 'Psychic',
+  'twisted_spoon': 'Psychic',
+  'silver powder': 'Bug',
+  'silver_powder': 'Bug',
+  'hard stone': 'Rock',
+  'hard_stone': 'Rock',
+  'spell tag': 'Ghost',
+  'spell_tag': 'Ghost',
+  'dragon fang': 'Dragon',
+  'dragon_fang': 'Dragon',
+  'black glasses': 'Dark',
+  'black_glasses': 'Dark',
+  'metal coat': 'Steel',
+  'metal_coat': 'Steel',
+  'silk scarf': 'Normal',
+  'silk_scarf': 'Normal',
+  'poison barb': 'Poison',
+  'poison_barb': 'Poison',
+};
+
+const RESIST_BERRIES: Record<string, PokemonType> = {
+  'yache berry': 'Ice',
+  'yache_berry': 'Ice',
+  'rindo berry': 'Grass',
+  'rindo_berry': 'Grass',
+  'wacan berry': 'Electric',
+  'wacan_berry': 'Electric',
+  'charti berry': 'Rock',
+  'charti_berry': 'Rock',
+  'shuca berry': 'Ground',
+  'shuca_berry': 'Ground',
+  'colbur berry': 'Dark',
+  'colbur_berry': 'Dark',
+  'occa berry': 'Fire',
+  'occa_berry': 'Fire',
+  'passho berry': 'Water',
+  'passho_berry': 'Water',
+  'coba berry': 'Flying',
+  'coba_berry': 'Flying',
+  'payapa berry': 'Psychic',
+  'payapa_berry': 'Psychic',
+  'tanga berry': 'Bug',
+  'tanga_berry': 'Bug',
+  'haban berry': 'Dragon',
+  'haban_berry': 'Dragon',
+  'kasib berry': 'Ghost',
+  'kasib_berry': 'Ghost',
+  'babiri berry': 'Steel',
+  'babiri_berry': 'Steel',
+  'chople berry': 'Fighting',
+  'chople_berry': 'Fighting',
+  'roseli berry': 'Fairy',
+  'roseli_berry': 'Fairy',
+};
+
+/**
+ * Calculates accurate Gen 3-5 Pokemon damage with STAB, type effectiveness, weather, burn, items, and critical hits
+ */
 export function calculateDamage(
   attacker: Pokemon,
   defender: Pokemon,
   move: Move,
-  options?: {
-    rngVariance?: number;
-    forceCrit?: boolean;
-    weather?: WeatherType;
-    isHail?: boolean;
-  }
+  options?: DamageCalculationOptions
 ): { damage: number; isCrit: boolean; effectiveness: number } {
   if (move.category === 'Status' || move.power === 0) {
     return { damage: 0, isCrit: false, effectiveness: 1 };
+  }
+
+  // Air Balloon Ground immunity
+  const defenderItemKey = defender.heldItem?.toLowerCase().trim() || '';
+  if (
+    move.type === 'Ground' &&
+    defender.heldItem &&
+    !defender.heldItemConsumed &&
+    defenderItemKey.includes('air balloon')
+  ) {
+    return { damage: 0, isCrit: false, effectiveness: 0 };
   }
 
   const effectiveness = calculateTypeEffectiveness(move.type, defender.types);
@@ -208,78 +317,145 @@ export function calculateDamage(
     ? (move.category === 'Physical' ? defender.statStages.defense : defender.statStages.spDef) || 0
     : 0;
 
-  // Check deterministic base damage cache
-  const cacheKey = `${attacker.level}:${move.power}:${move.type}:${move.category}:${
-    move.category === 'Physical' ? attacker.baseStats.attack : attacker.baseStats.spAtk
-  }:${atkStage}:${attacker.statusCondition || 'none'}:${attacker.ability}:${
-    move.category === 'Physical' ? defender.baseStats.defense : defender.baseStats.spDef
-  }:${defStage}:${defender.types.join(',')}:${defender.ability}:${weather}:${isCrit ? 1 : 0}`;
+  // Level factor: (2 * Level / 5) + 2
+  const levelFactor = Math.floor((2 * attacker.level) / 5) + 2;
 
-  let unvariedDamage = DAMAGE_LOOKUP_CACHE.get(cacheKey);
+  // In Gen 3, critical hits ignore negative attack stages and positive defense stages
+  const effectiveAtkStage = isCrit && atkStage < 0 ? 0 : atkStage;
+  const effectiveDefStage = isCrit && defStage > 0 ? 0 : defStage;
 
-  if (unvariedDamage === undefined) {
-    // Level factor: (2 * Level / 5) + 2
-    const levelFactor = Math.floor((2 * attacker.level) / 5) + 2;
+  // Move Power adjustments (Facade, Knock Off, Technician)
+  let movePower = move.power;
+  const isFacade = Boolean(move.isFacade || move.id === 'facade');
+  if (isFacade && attacker.statusCondition && ['burn', 'poison', 'toxic', 'paralysis'].includes(attacker.statusCondition)) {
+    movePower = 140;
+  }
+  const isKnockOff = Boolean(move.isKnockOff || move.id === 'knock_off');
+  if (isKnockOff && defender.heldItem && !defender.heldItemConsumed) {
+    movePower = Math.floor(movePower * 1.5);
+  }
+  if (attacker.ability === 'Technician' && movePower > 0 && movePower <= 60) {
+    movePower = Math.floor(movePower * 1.5);
+  }
 
-    // In Gen 3, critical hits ignore negative attack stages and positive defense stages
-    const effectiveAtkStage = isCrit && atkStage < 0 ? 0 : atkStage;
-    const effectiveDefStage = isCrit && defStage > 0 ? 0 : defStage;
+  // Calculate Base Attack
+  let atk =
+    (move.category === 'Physical' ? attacker.baseStats.attack : attacker.baseStats.spAtk) *
+    getStatStageMultiplier(effectiveAtkStage);
 
-    let atk =
-      (move.category === 'Physical' ? attacker.baseStats.attack : attacker.baseStats.spAtk) *
-      getStatStageMultiplier(effectiveAtkStage);
-    let def =
+  const attackerItemKey = attacker.heldItem?.toLowerCase().trim() || '';
+  if (attacker.heldItem && !attacker.heldItemConsumed) {
+    if (move.category === 'Physical' && attackerItemKey.includes('choice band')) {
+      atk *= 1.5;
+    } else if (move.category === 'Special' && attackerItemKey.includes('choice specs')) {
+      atk *= 1.5;
+    }
+  }
+  if (attacker.ability === 'Guts' && attacker.statusCondition && move.category === 'Physical') {
+    atk *= 1.5;
+  }
+
+  // Calculate Base Defense (Psyshock hits physical defense!)
+  const isPsyshock = Boolean(move.isPsyshock || move.id === 'psyshock' || move.id === 'psystrike');
+  let def: number;
+  if (isPsyshock) {
+    const physDefStage = isCrit && (defender.statStages?.defense || 0) > 0 ? 0 : (defender.statStages?.defense || 0);
+    def = defender.baseStats.defense * getStatStageMultiplier(physDefStage);
+  } else {
+    def =
       (move.category === 'Physical' ? defender.baseStats.defense : defender.baseStats.spDef) *
       getStatStageMultiplier(effectiveDefStage);
+  }
 
-    // Sandstorm boosts Rock-type Sp. Def by 1.5x
-    if (weather === 'Sand' && move.category === 'Special' && defender.types.includes('Rock')) {
+  if (defender.heldItem && !defender.heldItemConsumed) {
+    if (move.category === 'Special' && defenderItemKey.includes('assault vest')) {
+      def *= 1.5;
+    } else if (defenderItemKey.includes('eviolite')) {
       def *= 1.5;
     }
+  }
+  if (defender.ability === 'Marvel Scale' && defender.statusCondition && (move.category === 'Physical' || isPsyshock)) {
+    def *= 1.5;
+  }
 
-    // Thick Fat halves Fire and Ice damage
-    if (defender.ability === 'Thick Fat' && (move.type === 'Fire' || move.type === 'Ice')) {
-      atk *= 0.5;
+  // Sandstorm boosts Rock-type Sp. Def by 1.5x
+  if (weather === 'Sand' && move.category === 'Special' && !isPsyshock && defender.types.includes('Rock')) {
+    def *= 1.5;
+  }
+
+  // Thick Fat halves Fire and Ice damage
+  if (defender.ability === 'Thick Fat' && (move.type === 'Fire' || move.type === 'Ice')) {
+    atk *= 0.5;
+  }
+
+  // Levitate grants immunity to Ground moves
+  if (defender.ability === 'Levitate' && move.type === 'Ground') {
+    return { damage: 0, isCrit: false, effectiveness: 0 };
+  }
+
+  def = Math.max(1, def);
+
+  let baseDamage = (levelFactor * movePower * (atk / def)) / 50 + 2;
+
+  // Burn halves physical damage (unless Guts or Facade)
+  if (
+    attacker.statusCondition === 'burn' &&
+    move.category === 'Physical' &&
+    attacker.ability !== 'Guts' &&
+    !isFacade
+  ) {
+    baseDamage *= 0.5;
+  }
+
+  // Weather multipliers (Rain / Sun)
+  if (weather === 'Rain') {
+    if (move.type === 'Water') baseDamage *= 1.5;
+    else if (move.type === 'Fire') baseDamage *= 0.5;
+  } else if (weather === 'Sun') {
+    if (move.type === 'Fire') baseDamage *= 1.5;
+    else if (move.type === 'Water') baseDamage *= 0.5;
+  }
+
+  const critMultiplier = isCrit ? 1.5 : 1.0;
+  const isStab = attacker.types.includes(move.type);
+  const stabMultiplier = isStab ? 1.5 : 1.0;
+
+  let unvariedDamage = baseDamage * stabMultiplier * effectiveness * critMultiplier;
+
+  // Held Item damage modifiers
+  if (attacker.heldItem && !attacker.heldItemConsumed) {
+    if (attackerItemKey.includes('life orb')) {
+      unvariedDamage *= 1.3;
+    } else if (attackerItemKey.includes('expert belt') && effectiveness > 1) {
+      unvariedDamage *= 1.2;
+    } else if (TYPE_BOOST_ITEMS[attackerItemKey] === move.type) {
+      unvariedDamage *= 1.2;
     }
+  }
 
-    // Levitate grants immunity to Ground moves
-    if (defender.ability === 'Levitate' && move.type === 'Ground') {
-      return { damage: 0, isCrit: false, effectiveness: 0 };
+  // Type-Resist Berries
+  if (defender.heldItem && !defender.heldItemConsumed && effectiveness > 1) {
+    if (RESIST_BERRIES[defenderItemKey] === move.type) {
+      unvariedDamage *= 0.5;
     }
+  }
 
-    def = Math.max(1, def);
+  // Dual Screens
+  if (options?.defenderSideConditions?.reflectTurns && options.defenderSideConditions.reflectTurns > 0 && (move.category === 'Physical' || isPsyshock)) {
+    unvariedDamage *= 0.5;
+  }
+  if (options?.defenderSideConditions?.lightScreenTurns && options.defenderSideConditions.lightScreenTurns > 0 && move.category === 'Special' && !isPsyshock) {
+    unvariedDamage *= 0.5;
+  }
 
-    let baseDamage = (levelFactor * move.power * (atk / def)) / 50 + 2;
+  // Multiscale (halves damage from full health)
+  if (defender.ability === 'Multiscale' && defender.currentHp >= defender.maxHp) {
+    unvariedDamage *= 0.5;
+  }
 
-    // Burn halves physical damage (unless Guts)
-    if (
-      attacker.statusCondition === 'burn' &&
-      move.category === 'Physical' &&
-      attacker.ability !== 'Guts'
-    ) {
-      baseDamage *= 0.5;
-    }
-
-    // Weather multipliers (Rain / Sun)
-    if (weather === 'Rain') {
-      if (move.type === 'Water') baseDamage *= 1.5;
-      else if (move.type === 'Fire') baseDamage *= 0.5;
-    } else if (weather === 'Sun') {
-      if (move.type === 'Fire') baseDamage *= 1.5;
-      else if (move.type === 'Water') baseDamage *= 0.5;
-    }
-
-    const critMultiplier = isCrit ? 1.5 : 1.0;
-    const isStab = attacker.types.includes(move.type);
-    const stabMultiplier = isStab ? 1.5 : 1.0;
-
-    unvariedDamage = baseDamage * stabMultiplier * effectiveness * critMultiplier;
-
-    if (DAMAGE_LOOKUP_CACHE.size >= MAX_DAMAGE_CACHE_SIZE) {
-      const oldestKey = DAMAGE_LOOKUP_CACHE.keys().next().value;
-      if (oldestKey) DAMAGE_LOOKUP_CACHE.delete(oldestKey);
-    }
-    DAMAGE_LOOKUP_CACHE.set(cacheKey, unvariedDamage);
+  // Solid Rock / Filter
+  if ((defender.ability === 'Solid Rock' || defender.ability === 'Filter') && effectiveness > 1) {
+    unvariedDamage *= 0.75;
   }
 
   const finalDamage = Math.max(1, Math.floor(unvariedDamage * variance));
@@ -372,6 +548,10 @@ export function executeBattleTurn(
     mon.protectStreak = 0;
     mon.isConfused = false;
     mon.confusionTurns = 0;
+    mon.choiceLockedMove = undefined;
+    mon.isTaunted = false;
+    mon.tauntTurns = 0;
+    mon.perishCount = undefined;
     mon.statStages = { hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
   };
 
@@ -614,15 +794,18 @@ export function executeBattleTurn(
   const playerWantsSwitch = playerAction.type === 'switch' && playerAction.targetPokemonIndex !== undefined;
   const opponentWantsSwitch = opponentAction.type === 'switch' && opponentAction.targetPokemonIndex !== undefined;
 
-  // CRITICAL INVARIANT: Free Post-Faint & Pivot Replacement Switch
+  // CRITICAL INVARIANT: Post-Faint & Pivot Replacement Switch
   // When the player's active Pokémon has fainted or pivoted out (Volt Switch / U-turn / Baton Pass),
-  // sending out its replacement fills the empty slot between turns.
+  // sending out its replacement fills the empty slot.
   const isPostFaintPlayerSwitch =
     (currentState.phase === 'faint_switch_player' ||
       currentState.pendingPivot ||
       playerMon.fainted ||
       playerMon.currentHp <= 0) &&
     playerWantsSwitch;
+
+  let playerSwitched = false;
+  let opponentSwitched = false;
 
   if (isPostFaintPlayerSwitch) {
     const targetIdx = playerAction.targetPokemonIndex!;
@@ -659,20 +842,45 @@ export function executeBattleTurn(
 
       triggerSwitchInAbilities(target, currentOpp, 'player');
       applyEntryHazards(target, 'player', 'p1a');
-      nextState.phase = 'action_select';
+
+      const pendingOppAction = currentState.pendingOpponentAction;
       nextState.pendingPivot = false;
       nextState.pendingBatonPass = false;
-      nextState.isPlayerTurn = true;
-      nextState.lastMoveUsed = undefined;
-      nextState.turnMoves = [];
-      nextState.combatLog = [...nextState.combatLog, ...newLogs].slice(-50);
-    }
-    return nextState;
-  }
+      nextState.pendingOpponentAction = undefined;
 
-  // Standard Full Combat Turn
-  nextState.turnNumber += 1;
-  nextState.protocolLog.push(`|turn|${nextState.turnNumber}`);
+      // If the incoming target fainted from entry hazards (e.g. Spikes/Stealth Rock):
+      if (target.fainted || target.currentHp <= 0) {
+        nextState.phase = 'faint_switch_player';
+        nextState.isPlayerTurn = true;
+        nextState.turnMoves = [];
+        nextState.combatLog = [...nextState.combatLog, ...newLogs].slice(-50);
+        return nextState;
+      }
+
+      if (pendingOppAction && !currentOpp.fainted && currentOpp.currentHp > 0) {
+        // FAST PIVOT COUNTER-ATTACK:
+        // The opponent selected an action earlier this turn that has NOT yet executed.
+        // It now attacks the incoming Pokémon!
+        playerSwitched = true;
+        opponentAction = pendingOppAction;
+        // Do not increment turnNumber (finishing current turn)
+      } else {
+        // Clean free switch (post-faint or slow pivot where opponent already moved)
+        nextState.phase = 'action_select';
+        nextState.isPlayerTurn = true;
+        nextState.lastMoveUsed = undefined;
+        nextState.turnMoves = [];
+        nextState.combatLog = [...nextState.combatLog, ...newLogs].slice(-50);
+        return nextState;
+      }
+    } else {
+      return nextState;
+    }
+  } else {
+    // Standard Full Combat Turn
+    nextState.turnNumber += 1;
+    nextState.protocolLog.push(`|turn|${nextState.turnNumber}`);
+  }
 
   // Reset single-turn protection flags at the start of the turn
   nextState.playerTeam.forEach((p) => {
@@ -683,11 +891,8 @@ export function executeBattleTurn(
   });
 
   // Phase 1: Handle Voluntary Mid-Battle Switches First (Ordered by Speed if both switch)
-  let playerSwitched = false;
-  let opponentSwitched = false;
-
   const executePlayerSwitch = () => {
-    if (!playerWantsSwitch) return;
+    if (!playerWantsSwitch || playerSwitched) return;
     const target = nextState.playerTeam[playerAction.targetPokemonIndex!];
     if (target && !target.fainted && playerAction.targetPokemonIndex !== nextState.playerActiveIndex) {
       clearVolatileOnSwitch(playerMon);
@@ -762,7 +967,7 @@ export function executeBattleTurn(
       mon: curPlayerMon,
       action: playerAction,
       priority: getMovePriority(move),
-      speed: calculateEffectiveSpeed(curPlayerMon),
+      speed: calculateEffectiveSpeed(curPlayerMon, nextState.weather, nextState.playerSideConditions),
     });
   }
 
@@ -773,13 +978,16 @@ export function executeBattleTurn(
       mon: curOpponentMon,
       action: opponentAction,
       priority: getMovePriority(move),
-      speed: calculateEffectiveSpeed(curOpponentMon),
+      speed: calculateEffectiveSpeed(curOpponentMon, nextState.weather, nextState.opponentSideConditions),
     });
   }
 
+  const isTrickRoomActive = Boolean(nextState.trickRoomTurns && nextState.trickRoomTurns > 0);
   participants.sort((a, b) => {
     if (b.priority !== a.priority) return b.priority - a.priority;
-    if (b.speed !== a.speed) return b.speed - a.speed;
+    if (b.speed !== a.speed) {
+      return isTrickRoomActive ? a.speed - b.speed : b.speed - a.speed;
+    }
     return rng() < 0.5 ? 1 : -1;
   });
 
@@ -837,6 +1045,7 @@ export function executeBattleTurn(
   };
 
   const flinchedSides = new Set<'player' | 'opponent'>();
+  const hasMovedSides = new Set<'player' | 'opponent'>();
 
   // Execute participants one by one; one side fully resolves before the other begins
   for (const p of participants) {
@@ -855,12 +1064,58 @@ export function executeBattleTurn(
     if (flinchedSides.has(p.side)) {
       log(p.side, `${attacker.species} flinched and couldn't move!`, 'status');
       nextState.protocolLog!.push(`|cant|${actorSlot}: ${attacker.species}|flinch`);
+      hasMovedSides.add(p.side);
       continue;
     }
 
     const rawMove = attacker.moves[p.action.moveIndex ?? 0];
     if (!rawMove) continue;
     const move = enrichMoveWithMechanics(rawMove);
+
+    // Taunt Status Move Invalidation
+    if (attacker.isTaunted && move.category === 'Status') {
+      log('system', `${attacker.species} can't use ${move.name} after being taunted!`, 'status');
+      nextState.protocolLog!.push(`|-cant|${actorSlot}: ${attacker.species}|move: Taunt`);
+      hasMovedSides.add(p.side);
+      continue;
+    }
+
+    // Choice Item Move Lock
+    const atkItemKey = attacker.heldItem?.toLowerCase() || '';
+    if (
+      attacker.heldItem &&
+      !attacker.heldItemConsumed &&
+      (atkItemKey.includes('choice band') || atkItemKey.includes('choice specs') || atkItemKey.includes('choice scarf'))
+    ) {
+      if (!attacker.choiceLockedMove) {
+        attacker.choiceLockedMove = move.id;
+      }
+    }
+
+    // Sucker Punch Check: Fails if defender chose status or switched or already moved
+    if (move.isSuckerPunch || move.id === 'sucker_punch') {
+      const opposingParticipant = participants.find((pt) => pt.side !== p.side);
+      const opposingRawMove =
+        opposingParticipant &&
+        opposingParticipant.action.type === 'move' &&
+        opposingParticipant.action.moveIndex !== undefined
+          ? defender.moves[opposingParticipant.action.moveIndex]
+          : undefined;
+      const opposingEnriched = opposingRawMove ? enrichMoveWithMechanics(opposingRawMove) : undefined;
+      const opposingAlreadyMoved = hasMovedSides.has(isPlayer ? 'opponent' : 'player');
+      if (
+        !opposingEnriched ||
+        opposingEnriched.category === 'Status' ||
+        opposingAlreadyMoved
+      ) {
+        log(p.side, `${attacker.species} used ${move.name}!`);
+        log('system', `But it failed!`, 'status');
+        nextState.protocolLog!.push(`|move|${actorSlot}: ${attacker.species}|${move.name}|${targetSlot}: ${defender.species}`);
+        nextState.protocolLog!.push(`|-fail|${actorSlot}: ${attacker.species}`);
+        hasMovedSides.add(p.side);
+        continue;
+      }
+    }
 
     // Recharge Turn Check (e.g. after Blast Burn, Frenzy Plant, Hydro Cannon, Hyper Beam)
     if (attacker.mustRecharge) {
@@ -1119,6 +1374,59 @@ export function executeBattleTurn(
         nextState.protocolLog!.push(`|-sideend|p2: Stealth Rock`);
       }
 
+      // Dual Screens (Reflect / Light Screen)
+      if (move.isScreen === 'reflect' || move.id === 'reflect') {
+        const sideCond = p.side === 'player'
+          ? (nextState.playerSideConditions = nextState.playerSideConditions || {})
+          : (nextState.opponentSideConditions = nextState.opponentSideConditions || {});
+        sideCond.reflectTurns = attacker.heldItem?.toLowerCase().includes('light clay') ? 8 : 5;
+        log(p.side, `Reflect raised ${p.side === 'player' ? 'your' : 'the opposing'} team's Defense!`, 'status');
+        nextState.protocolLog!.push(`|-sidestart|${p.side === 'player' ? 'p1' : 'p2'}: move: Reflect`);
+      } else if (move.isScreen === 'light_screen' || move.id === 'light_screen') {
+        const sideCond = p.side === 'player'
+          ? (nextState.playerSideConditions = nextState.playerSideConditions || {})
+          : (nextState.opponentSideConditions = nextState.opponentSideConditions || {});
+        sideCond.lightScreenTurns = attacker.heldItem?.toLowerCase().includes('light clay') ? 8 : 5;
+        log(p.side, `Light Screen raised ${p.side === 'player' ? 'your' : 'the opposing'} team's Sp. Def!`, 'status');
+        nextState.protocolLog!.push(`|-sidestart|${p.side === 'player' ? 'p1' : 'p2'}: move: Light Screen`);
+      }
+
+      // Haze
+      if (move.isHaze || move.id === 'haze') {
+        curPlayerMon.statStages = { hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
+        curOpponentMon.statStages = { hp: 0, attack: 0, defense: 0, spAtk: 0, spDef: 0, speed: 0 };
+        log(p.side, `All stat changes were eliminated!`, 'status');
+        nextState.protocolLog!.push(`|-clearallboost`);
+      }
+
+      // Taunt
+      if (move.isTaunt || move.id === 'taunt') {
+        defender.isTaunted = true;
+        defender.tauntTurns = 3;
+        log(p.side, `${defender.species} fell for the taunt!`, 'status');
+        nextState.protocolLog!.push(`|-start|${targetSlot}: ${defender.species}|move: Taunt`);
+      }
+
+      // Perish Song
+      if (move.isPerishSong || move.id === 'perish_song') {
+        if (!curPlayerMon.fainted && curPlayerMon.currentHp > 0) curPlayerMon.perishCount = 3;
+        if (!curOpponentMon.fainted && curOpponentMon.currentHp > 0) curOpponentMon.perishCount = 3;
+        log(p.side, `All Pokémon hearing the song will faint in three turns!`, 'status');
+        nextState.protocolLog!.push(`|-fieldactivate|move: Perish Song`);
+      }
+
+      // Trick Room
+      if (move.isTrickRoom || move.id === 'trick_room') {
+        nextState.trickRoomTurns = nextState.trickRoomTurns && nextState.trickRoomTurns > 0 ? 0 : 5;
+        if (nextState.trickRoomTurns > 0) {
+          log(p.side, `${attacker.species} twisted the dimensions!`, 'status');
+          nextState.protocolLog!.push(`|-fieldstart|move: Trick Room`);
+        } else {
+          log(p.side, `The dimensions returned to normal!`, 'status');
+          nextState.protocolLog!.push(`|-fieldend|move: Trick Room`);
+        }
+      }
+
       // Status Confusion (Confuse Ray, Sweet Kiss, Supersonic, Swagger, Flatter)
       if (move.causesConfusion) {
         applyConfusion(defender, targetSlot, p.side);
@@ -1135,6 +1443,12 @@ export function executeBattleTurn(
       if (isStatusPivot && !attacker.fainted && attacker.currentHp > 0) {
         const switched = triggerPivotSwitch(p.side, attacker, move.isBatonPass);
         if (switched && p.side === 'player') {
+          hasMovedSides.add(p.side);
+          if (!hasMovedSides.has('opponent') && !defender.fainted && defender.currentHp > 0) {
+            nextState.pendingOpponentAction = opponentAction;
+          } else {
+            nextState.pendingOpponentAction = undefined;
+          }
           break;
         }
       }
@@ -1157,10 +1471,13 @@ export function executeBattleTurn(
     for (let hitIdx = 0; hitIdx < hitCount; hitIdx++) {
       if (defender.fainted || defender.currentHp <= 0) break;
 
+      const defenderWasFullHp = defender.currentHp >= defender.maxHp;
+
       const { damage, isCrit, effectiveness } = calculateDamage(attacker, defender, move, {
         weather: nextState.weather,
         forceCrit: options?.forceCrit,
         rngVariance: 0.85 + rng() * 0.15,
+        defenderSideConditions: isPlayer ? nextState.opponentSideConditions : nextState.playerSideConditions,
       });
 
       finalEffectiveness = effectiveness;
@@ -1192,11 +1509,54 @@ export function executeBattleTurn(
       } else {
         hitSubstituteOnly = false;
         const actualHpLost = Math.min(defender.currentHp, damage);
-        defender.currentHp = Math.max(0, defender.currentHp - damage);
-        totalDamageDealt += actualHpLost;
-        if (defender.currentHp <= 0) {
-          defender.currentHp = 0;
-          defender.fainted = true;
+        const wouldFaint = damage >= defender.currentHp;
+
+        // Focus Sash & Sturdy check (survival with 1 HP from full health)
+        const defenderItem = defender.heldItem?.toLowerCase() || '';
+        if (wouldFaint && defenderWasFullHp && defender.heldItem && !defender.heldItemConsumed && defenderItem.includes('focus sash')) {
+          defender.currentHp = 1;
+          defender.heldItemConsumed = true;
+          totalDamageDealt += Math.max(0, defender.maxHp - 1);
+          log(p.side === 'player' ? 'opponent' : 'player', `${defender.species} hung on using its Focus Sash!`, 'status');
+          nextState.protocolLog!.push(`|-enditem|${targetSlot}: ${defender.species}|Focus Sash`);
+        } else if (wouldFaint && defenderWasFullHp && defender.ability === 'Sturdy') {
+          defender.currentHp = 1;
+          totalDamageDealt += Math.max(0, defender.maxHp - 1);
+          log(p.side === 'player' ? 'opponent' : 'player', `${defender.species} endured the hit using Sturdy!`, 'status');
+          nextState.protocolLog!.push(`|-activate|${targetSlot}: ${defender.species}|ability: Sturdy`);
+        } else {
+          defender.currentHp = Math.max(0, defender.currentHp - damage);
+          totalDamageDealt += actualHpLost;
+          if (defender.currentHp <= 0) {
+            defender.currentHp = 0;
+            defender.fainted = true;
+          }
+        }
+
+        // Air Balloon pops on taking damaging hit
+        if (defender.heldItem && !defender.heldItemConsumed && defenderItem.includes('air balloon')) {
+          defender.heldItemConsumed = true;
+          log(p.side === 'player' ? 'opponent' : 'player', `${defender.species}'s Air Balloon popped!`, 'status');
+          nextState.protocolLog!.push(`|-enditem|${targetSlot}: ${defender.species}|Air Balloon`);
+        }
+
+        // Type Resist Berry consumption
+        if (defender.heldItem && !defender.heldItemConsumed && finalEffectiveness > 1 && RESIST_BERRIES[defenderItem] === move.type) {
+          const berry = defender.heldItem;
+          defender.heldItemConsumed = true;
+          log(p.side === 'player' ? 'opponent' : 'player', `${defender.species}'s ${berry} softened the blow!`, 'status');
+          nextState.protocolLog!.push(`|-enditem|${targetSlot}: ${defender.species}|${berry}`);
+        }
+
+        // Weakness Policy trigger
+        if (defender.heldItem && !defender.heldItemConsumed && defenderItem.includes('weakness policy') && finalEffectiveness > 1 && !defender.fainted) {
+          defender.heldItemConsumed = true;
+          applyStatStageChange(defender, 'attack', 2);
+          applyStatStageChange(defender, 'spAtk', 2);
+          log(p.side === 'player' ? 'opponent' : 'player', `${defender.species}'s Weakness Policy sharply raised its Attack and Sp. Atk!`, 'status');
+          nextState.protocolLog!.push(`|-enditem|${targetSlot}: ${defender.species}|Weakness Policy`);
+          nextState.protocolLog!.push(`|-boost|${targetSlot}: ${defender.species}|atk|2`);
+          nextState.protocolLog!.push(`|-boost|${targetSlot}: ${defender.species}|spa|2`);
         }
       }
     }
@@ -1368,9 +1728,114 @@ export function executeBattleTurn(
     if (isPivotMove && totalDamageDealt > 0 && !attacker.fainted && attacker.currentHp > 0) {
       const switched = triggerPivotSwitch(p.side, attacker, move.isBatonPass);
       if (switched && p.side === 'player') {
+        hasMovedSides.add(p.side);
+        if (!hasMovedSides.has('opponent') && !defender.fainted && defender.currentHp > 0) {
+          nextState.pendingOpponentAction = opponentAction;
+        } else {
+          nextState.pendingOpponentAction = undefined;
+        }
         break;
       }
     }
+
+    // Knock Off item removal
+    if ((move.isKnockOff || move.id === 'knock_off') && defender.heldItem && !defender.heldItemConsumed && !defenderDied && !hitSubstituteOnly) {
+      const removedItem = defender.heldItem;
+      defender.heldItemConsumed = true;
+      log(p.side, `${attacker.species} knocked off ${defender.species}'s ${removedItem}!`, 'status');
+      nextState.protocolLog!.push(`|-enditem|${targetSlot}: ${defender.species}|${removedItem}|[from] move: Knock Off|[of] ${actorSlot}: ${attacker.species}`);
+    }
+
+    // Life Orb Recoil (10% max HP)
+    const attackerItem = attacker.heldItem?.toLowerCase() || '';
+    if (attacker.heldItem && !attacker.heldItemConsumed && attackerItem.includes('life orb') && totalDamageDealt > 0 && attacker.ability !== 'Magic Guard') {
+      const loDmg = Math.max(1, Math.floor(attacker.maxHp * 0.1));
+      attacker.currentHp = Math.max(0, attacker.currentHp - loDmg);
+      log(p.side, `${attacker.species} lost some of its HP! (-${loDmg} HP)`, 'damage');
+      nextState.protocolLog!.push(`|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] item: Life Orb`);
+      if (attacker.currentHp <= 0) {
+        attacker.currentHp = 0;
+        attacker.fainted = true;
+        log('system', `${attacker.species} fainted!`, 'faint');
+        nextState.protocolLog!.push(`|faint|${actorSlot}: ${attacker.species}`);
+      }
+    }
+
+    // Contact Abilities & Items (Physical contact attacks only)
+    if (move.category === 'Physical' && totalDamageDealt > 0 && !hitSubstituteOnly) {
+      const defItem = defender.heldItem?.toLowerCase() || '';
+      // Rocky Helmet (1/6 max HP)
+      if (defender.heldItem && !defender.heldItemConsumed && defItem.includes('rocky helmet') && attacker.ability !== 'Magic Guard' && !attacker.fainted) {
+        const rhDmg = Math.max(1, Math.floor(attacker.maxHp / 6));
+        attacker.currentHp = Math.max(0, attacker.currentHp - rhDmg);
+        log(p.side === 'player' ? 'opponent' : 'player', `${attacker.species} was hurt by ${defender.species}'s Rocky Helmet! (-${rhDmg} HP)`, 'damage');
+        nextState.protocolLog!.push(`|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] item: Rocky Helmet`);
+        if (attacker.currentHp <= 0) {
+          attacker.currentHp = 0;
+          attacker.fainted = true;
+          log('system', `${attacker.species} fainted!`, 'faint');
+          nextState.protocolLog!.push(`|faint|${actorSlot}: ${attacker.species}`);
+        }
+      }
+
+      // Rough Skin / Iron Barbs (1/8 max HP)
+      if ((defender.ability === 'Rough Skin' || defender.ability === 'Iron Barbs') && attacker.ability !== 'Magic Guard' && !attacker.fainted) {
+        const rsDmg = Math.max(1, Math.floor(attacker.maxHp / 8));
+        attacker.currentHp = Math.max(0, attacker.currentHp - rsDmg);
+        log(p.side === 'player' ? 'opponent' : 'player', `${attacker.species} was hurt by ${defender.species}'s ${defender.ability}! (-${rsDmg} HP)`, 'damage');
+        nextState.protocolLog!.push(`|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] ability: ${defender.ability}`);
+        if (attacker.currentHp <= 0) {
+          attacker.currentHp = 0;
+          attacker.fainted = true;
+          log('system', `${attacker.species} fainted!`, 'faint');
+          nextState.protocolLog!.push(`|faint|${actorSlot}: ${attacker.species}`);
+        }
+      }
+
+      // Flame Body (30% burn on contact)
+      if (defender.ability === 'Flame Body' && !attacker.statusCondition && !attacker.types.includes('Fire') && rng() < 0.3) {
+        applyStatusEffect(attacker, actorSlot, 'burn', p.side === 'player' ? 'opponent' : 'player');
+      }
+    }
+
+    // Self-Faint move (Explosion, Self-Destruct)
+    if (move.isSelfFaint || move.id === 'explosion' || move.id === 'self_destruct') {
+      attacker.currentHp = 0;
+      attacker.fainted = true;
+      log(p.side, `${attacker.species} fainted!`, 'faint');
+      nextState.protocolLog!.push(`|faint|${actorSlot}: ${attacker.species}`);
+    }
+
+    // Phazing moves (Whirlwind, Roar, Dragon Tail)
+    const isPhazingMove = Boolean(move.isPhazing || move.id === 'whirlwind' || move.id === 'roar' || move.id === 'dragon_tail');
+    if (isPhazingMove && !defenderDied && !hitSubstituteOnly) {
+      const defSide = isPlayer ? 'opponent' : 'player';
+      const defTeam = defSide === 'player' ? nextState.playerTeam : nextState.opponentTeam;
+      const defActiveIdx = defSide === 'player' ? nextState.playerActiveIndex : nextState.opponentActiveIndex;
+      const validSwitchIndices: number[] = [];
+      defTeam.forEach((m, idx) => {
+        if (idx !== defActiveIdx && !m.fainted && m.currentHp > 0) validSwitchIndices.push(idx);
+      });
+      if (validSwitchIndices.length > 0) {
+        const randIdx = validSwitchIndices[Math.floor(rng() * validSwitchIndices.length)];
+        const incoming = defTeam[randIdx];
+        clearVolatileOnSwitch(defender);
+        if (defSide === 'player') {
+          nextState.playerActiveIndex = randIdx;
+          curPlayerMon = incoming;
+        } else {
+          nextState.opponentActiveIndex = randIdx;
+          curOpponentMon = incoming;
+        }
+        log(p.side, `${defender.species} was blown away!`, 'switch');
+        log(defSide, `${incoming.species} was dragged into battle!`, 'switch');
+        nextState.protocolLog!.push(`|drag|${targetSlot}: ${incoming.species}|${incoming.species}, L${incoming.level}|${incoming.currentHp}/${incoming.maxHp}`);
+        triggerSwitchInAbilities(incoming, attacker, defSide);
+        applyEntryHazards(incoming, defSide, targetSlot);
+      }
+    }
+
+    hasMovedSides.add(p.side);
 
     // Check faint: A knocked out Pokemon CANNOT attack back or execute their action
     if (defenderDied) {
@@ -1454,6 +1919,161 @@ export function executeBattleTurn(
 
   applyStatusResiduals(nextState.playerTeam[nextState.playerActiveIndex], 'p1a');
   applyStatusResiduals(nextState.opponentTeam[nextState.opponentActiveIndex], 'p2a');
+
+  // End-of-turn Held Items (Leftovers, Black Sludge, Sitrus Berry, Flame Orb, Lum Berry, Chesto Berry, White Herb)
+  const checkEndTurnHeldItems = (mon: Pokemon, slotId: string, side: 'player' | 'opponent') => {
+    if (mon.fainted || mon.currentHp <= 0) return;
+    const itemKey = mon.heldItem?.toLowerCase() || '';
+
+    // Sitrus Berry: <= 50% HP triggers 25% max HP restore
+    if (itemKey.includes('sitrus berry') && !mon.heldItemConsumed && mon.currentHp <= Math.floor(mon.maxHp * 0.5)) {
+      mon.heldItemConsumed = true;
+      const heal = Math.max(1, Math.floor(mon.maxHp * 0.25));
+      mon.currentHp = Math.min(mon.maxHp, mon.currentHp + heal);
+      log(side, `${mon.species} restored HP using its Sitrus Berry! (+${heal} HP)`, 'status');
+      nextState.protocolLog!.push(`|-heal|${slotId}: ${mon.species}|${mon.currentHp}/${mon.maxHp}|[from] item: Sitrus Berry`);
+      nextState.protocolLog!.push(`|-enditem|${slotId}: ${mon.species}|Sitrus Berry`);
+    }
+
+    // Leftovers: +1/16 max HP
+    if (itemKey.includes('leftovers') && !mon.heldItemConsumed && mon.currentHp < mon.maxHp) {
+      const heal = Math.max(1, Math.floor(mon.maxHp / 16));
+      mon.currentHp = Math.min(mon.maxHp, mon.currentHp + heal);
+      log(side, `${mon.species} restored a little HP using its Leftovers! (+${heal} HP)`, 'status');
+      nextState.protocolLog!.push(`|-heal|${slotId}: ${mon.species}|${mon.currentHp}/${mon.maxHp}|[from] item: Leftovers`);
+    }
+
+    // Black Sludge: Poison types heal 1/16, non-Poison lose 1/8
+    if (itemKey.includes('black sludge') && !mon.heldItemConsumed) {
+      if (mon.types.includes('Poison')) {
+        if (mon.currentHp < mon.maxHp) {
+          const heal = Math.max(1, Math.floor(mon.maxHp / 16));
+          mon.currentHp = Math.min(mon.maxHp, mon.currentHp + heal);
+          log(side, `${mon.species} restored HP using its Black Sludge! (+${heal} HP)`, 'status');
+          nextState.protocolLog!.push(`|-heal|${slotId}: ${mon.species}|${mon.currentHp}/${mon.maxHp}|[from] item: Black Sludge`);
+        }
+      } else if (mon.ability !== 'Magic Guard') {
+        const sludgeDmg = Math.max(1, Math.floor(mon.maxHp / 8));
+        mon.currentHp = Math.max(0, mon.currentHp - sludgeDmg);
+        log(side, `${mon.species} was hurt by its Black Sludge! (-${sludgeDmg} HP)`, 'damage');
+        nextState.protocolLog!.push(`|-damage|${slotId}: ${mon.species}|${mon.currentHp}/${mon.maxHp}|[from] item: Black Sludge`);
+        if (mon.currentHp <= 0) {
+          mon.fainted = true;
+          log('system', `${mon.species} fainted!`, 'faint');
+          nextState.protocolLog!.push(`|faint|${slotId}: ${mon.species}`);
+        }
+      }
+    }
+
+    // Flame Orb: burns holder
+    if (itemKey.includes('flame orb') && !mon.heldItemConsumed && !mon.statusCondition && !mon.types.includes('Fire')) {
+      applyStatusEffect(mon, slotId, 'burn', side);
+    }
+
+    // Lum Berry: cures status or confusion
+    if (itemKey.includes('lum berry') && !mon.heldItemConsumed && (mon.statusCondition || mon.isConfused)) {
+      mon.heldItemConsumed = true;
+      mon.statusCondition = null;
+      mon.isConfused = false;
+      mon.confusionTurns = 0;
+      log(side, `${mon.species} cured its status using its Lum Berry!`, 'status');
+      nextState.protocolLog!.push(`|-curestatus|${slotId}: ${mon.species}`);
+      nextState.protocolLog!.push(`|-enditem|${slotId}: ${mon.species}|Lum Berry`);
+    }
+
+    // Chesto Berry: cures sleep
+    if (itemKey.includes('chesto berry') && !mon.heldItemConsumed && mon.statusCondition === 'sleep') {
+      mon.heldItemConsumed = true;
+      mon.statusCondition = null;
+      mon.sleepTurns = 0;
+      log(side, `${mon.species} woke up using its Chesto Berry!`, 'status');
+      nextState.protocolLog!.push(`|-curestatus|${slotId}: ${mon.species}|slp`);
+      nextState.protocolLog!.push(`|-enditem|${slotId}: ${mon.species}|Chesto Berry`);
+    }
+
+    // White Herb: resets negative stat stages to 0
+    if (
+      itemKey.includes('white herb') &&
+      !mon.heldItemConsumed &&
+      mon.statStages &&
+      Object.values(mon.statStages).some((v) => (v || 0) < 0)
+    ) {
+      mon.heldItemConsumed = true;
+      for (const k of Object.keys(mon.statStages) as StatKey[]) {
+        if ((mon.statStages[k] || 0) < 0) {
+          mon.statStages[k] = 0;
+        }
+      }
+      log(side, `${mon.species} restored its lowered stats using its White Herb!`, 'status');
+      nextState.protocolLog!.push(`|-clearnegativeboost|${slotId}: ${mon.species}|[from] item: White Herb`);
+      nextState.protocolLog!.push(`|-enditem|${slotId}: ${mon.species}|White Herb`);
+    }
+  };
+
+  checkEndTurnHeldItems(nextState.playerTeam[nextState.playerActiveIndex], 'p1a', 'player');
+  checkEndTurnHeldItems(nextState.opponentTeam[nextState.opponentActiveIndex], 'p2a', 'opponent');
+
+  // Decrement Screens (Reflect, Light Screen, Tailwind)
+  const decrementScreens = (sideConditions?: SideConditions, sideName: string = 'Your') => {
+    if (!sideConditions) return;
+    if (sideConditions.reflectTurns && sideConditions.reflectTurns > 0) {
+      sideConditions.reflectTurns -= 1;
+      if (sideConditions.reflectTurns === 0) {
+        log('system', `${sideName} team's Reflect wore off!`, 'status');
+      }
+    }
+    if (sideConditions.lightScreenTurns && sideConditions.lightScreenTurns > 0) {
+      sideConditions.lightScreenTurns -= 1;
+      if (sideConditions.lightScreenTurns === 0) {
+        log('system', `${sideName} team's Light Screen wore off!`, 'status');
+      }
+    }
+    if (sideConditions.tailwindTurns && sideConditions.tailwindTurns > 0) {
+      sideConditions.tailwindTurns -= 1;
+      if (sideConditions.tailwindTurns === 0) {
+        log('system', `${sideName} team's Tailwind petered out!`, 'status');
+      }
+    }
+  };
+
+  decrementScreens(nextState.playerSideConditions, 'Your');
+  decrementScreens(nextState.opponentSideConditions, 'Opponent');
+
+  // Decrement Volatiles (Taunt, Perish Count)
+  const decrementVolatiles = (mon: Pokemon, slotId: string) => {
+    if (mon.fainted || mon.currentHp <= 0) return;
+    if (mon.isTaunted && mon.tauntTurns) {
+      mon.tauntTurns -= 1;
+      if (mon.tauntTurns <= 0) {
+        mon.isTaunted = false;
+        log('system', `${mon.species}'s taunt wore off!`, 'status');
+        nextState.protocolLog!.push(`|-end|${slotId}: ${mon.species}|move: Taunt`);
+      }
+    }
+    if (mon.perishCount !== undefined && mon.perishCount > 0) {
+      mon.perishCount -= 1;
+      log('system', `${mon.species}'s perish count fell to ${mon.perishCount}!`, 'status');
+      nextState.protocolLog!.push(`|-start|${slotId}: ${mon.species}|perish${mon.perishCount}`);
+      if (mon.perishCount <= 0) {
+        mon.currentHp = 0;
+        mon.fainted = true;
+        log('system', `${mon.species} fainted from the Perish Song!`, 'faint');
+        nextState.protocolLog!.push(`|faint|${slotId}: ${mon.species}`);
+      }
+    }
+  };
+
+  decrementVolatiles(nextState.playerTeam[nextState.playerActiveIndex], 'p1a');
+  decrementVolatiles(nextState.opponentTeam[nextState.opponentActiveIndex], 'p2a');
+
+  // Decrement Trick Room
+  if (nextState.trickRoomTurns && nextState.trickRoomTurns > 0) {
+    nextState.trickRoomTurns -= 1;
+    if (nextState.trickRoomTurns === 0) {
+      log('system', `The twisted dimensions returned to normal!`, 'status');
+      nextState.protocolLog!.push(`|-fieldend|move: Trick Room`);
+    }
+  }
 
   // Phase 4: Check Game Over / Victory Conditions
   const playerAllFainted = nextState.playerTeam.every((p) => p.fainted || p.currentHp <= 0);
