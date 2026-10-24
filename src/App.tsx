@@ -26,6 +26,9 @@ const TeamSelectorModal = lazy(() =>
 const UIPrototypeStudioModal = lazy(() =>
   import('./components/UIPrototypeStudioModal').then((m) => ({ default: m.UIPrototypeStudioModal }))
 );
+const BattlePreviewModal = lazy(() =>
+  import('./components/BattlePreviewModal').then((m) => ({ default: m.BattlePreviewModal }))
+);
 
 export default function App() {
   useMobileViewport(); // Handles 100dvh shifts and first-touch audio unlock
@@ -40,6 +43,7 @@ export default function App() {
   const [isWardrobeModalOpen, setIsWardrobeModalOpen] = useState<boolean>(false);
   const [isTeamSelectModalOpen, setIsTeamSelectModalOpen] = useState<boolean>(false);
   const [isStudioModalOpen, setIsStudioModalOpen] = useState<boolean>(false);
+  const [isBattlePreviewOpen, setIsBattlePreviewOpen] = useState<boolean>(false);
   const [studioInitialTab, setStudioInitialTab] = useState<'bracket' | 'champions' | 'regional' | 'victory'>('bracket');
   const [teamSelectInitialStep, setTeamSelectInitialStep] = useState<'teams' | 'lead'>('teams');
   const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
@@ -99,6 +103,8 @@ export default function App() {
     } else if (preview === 'studio' || preview === 'bracket' || preview === 'champions' || preview === 'regional' || preview === 'victory') {
       setStudioInitialTab(preview === 'studio' ? 'bracket' : (preview as any));
       setIsStudioModalOpen(true);
+    } else if (preview === 'battle_preview' || preview === 'preview') {
+      setIsBattlePreviewOpen(true);
     }
   }, []);
 
@@ -213,6 +219,34 @@ export default function App() {
             isOpen={isStudioModalOpen}
             onClose={() => setIsStudioModalOpen(false)}
             initialTab={studioInitialTab}
+          />
+        )}
+
+        {isBattlePreviewOpen && (
+          <BattlePreviewModal
+            isOpen={isBattlePreviewOpen}
+            onClose={() => setIsBattlePreviewOpen(false)}
+            onContinueToBattle={() => {
+              setIsBattlePreviewOpen(false);
+              startNewBattle(selectedTeam.team);
+            }}
+            mode="gauntlet"
+            stageNumber={2}
+            totalStages={5}
+            playerTeam={selectedTeam.team}
+            opponent={{
+              name: 'BRUNO',
+              title: 'ELITE FOUR #2',
+              typeSpecialty: 'FIGHTING',
+              typeBg: '#902820',
+              quote: '"Through rigorous training, people and Pokémon become stronger! Feel our Fighting power!"',
+              leadPokemonName: 'Hitmontop',
+              leadPokemonDex: 237,
+              leadPokemonDetail: 'Fighting • Ability: Intimidate',
+              benchCount: 4,
+              spriteUrl: '/sprites/trainers/bruno_sprite.png',
+            }}
+            isHealed={true}
           />
         )}
       </Suspense>
