@@ -21,6 +21,7 @@ import { getSpriteUrl } from '../game/data/typeChart';
 export interface OpponentPreviewInfo {
   name: string;
   title: string;
+  headerTitle?: string;
   typeSpecialty: string;
   typeBg?: string;
   quote: string;
@@ -57,6 +58,22 @@ export const BattlePreviewModal: React.FC<BattlePreviewModalProps> = ({
 
   const isFinalStage = mode === 'gauntlet' && stageNumber === totalStages;
 
+  const stageSubtitle = mode === 'gauntlet'
+    ? isFinalStage
+      ? `FINAL STAGE • ${stageNumber} OF ${totalStages}`
+      : `NEXT UP • STAGE ${stageNumber} OF ${totalStages}`
+    : "TODAY'S CHAMPION SHOWDOWN";
+
+  const trainerFullTitle = opponent.headerTitle || (
+    opponent.name.startsWith('ELITE FOUR') || opponent.name.startsWith('CHAMPION')
+      ? opponent.name
+      : opponent.title.includes('ELITE FOUR')
+        ? `ELITE FOUR ${opponent.name}`
+        : opponent.title.includes('CHAMPION')
+          ? `CHAMPION ${opponent.name}`
+          : opponent.name
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#081820] select-none overflow-hidden"
@@ -89,19 +106,11 @@ export const BattlePreviewModal: React.FC<BattlePreviewModalProps> = ({
               <polygon points="12,6 348,6 353,11 353,37 348,42 12,42 7,37 7,11" fill="#e0ecd0" />
             </svg>
             <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
-              <div className="font-pixel text-[7.5px] text-[#506c44] font-bold tracking-wider uppercase">
-                {mode === 'gauntlet'
-                  ? isFinalStage
-                    ? 'GAUNTLET FINAL • STAGE 5 OF 5'
-                    : `GAUNTLET • ROUND ${stageNumber} OF ${totalStages}`
-                  : "TODAY'S CHAMPION SHOWDOWN"}
+              <div className="font-pixel text-[7px] sm:text-[7.5px] text-[#506c44] font-bold tracking-wider uppercase mb-0.5">
+                {stageSubtitle}
               </div>
-              <h1 className="gba-title-text text-[15px] sm:text-[17px] font-bold text-[#182418] leading-none mt-0.5">
-                {mode === 'gauntlet'
-                  ? isFinalStage
-                    ? `FINAL: ${opponent.name}`
-                    : `NEXT: ${opponent.name}`
-                  : opponent.name}
+              <h1 className="gba-title-text text-[14px] sm:text-[16px] font-bold text-[#182418] leading-none">
+                {trainerFullTitle}
               </h1>
             </div>
           </header>

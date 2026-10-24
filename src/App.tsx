@@ -237,6 +237,7 @@ export default function App() {
             opponent={{
               name: 'BRUNO',
               title: 'ELITE FOUR #2',
+              headerTitle: 'ELITE FOUR BRUNO',
               typeSpecialty: 'FIGHTING',
               typeBg: '#902820',
               quote: '"Through rigorous training, people and Pokémon become stronger! Feel our Fighting power!"',
