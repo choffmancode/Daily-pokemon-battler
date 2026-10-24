@@ -24,6 +24,7 @@ import {
 } from './gachaEngine.ts';
 import { BEGINNER_TEAMS, CHAMPION_RED_TEAM } from './constants.ts';
 import { Pokemon, PokemonType } from './types.ts';
+import { enrichMoveWithMechanics } from './data/moveMechanicsKB.ts';
 
 test('type effectiveness accurately matches Pokémon mechanics', () => {
   assert.equal(calculateTypeEffectiveness('Fire', ['Grass']), 2);
@@ -1474,6 +1475,83 @@ test('Move Mechanics: Haze, Taunt, Perish Song, and Trick Room field dynamics', 
   const afterTR = executeBattleTurn(afterTaunt, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
   assert.equal(afterTR.trickRoomTurns, 4); // Set to 5 and decremented at end of turn
 });
+test('Move Mechanics: Skill Link guarantees max multi-hit strikes (Icicle Spear / Rock Blast)', () => {
+  const cloyster = createTestMon('cloyster', 'Cloyster', ['Water', 'Ice'], { hp: 300, attack: 300, defense: 400, spAtk: 200, spDef: 150, speed: 200 }, { ability: 'Skill Link' });
+  const snorlax = createTestMon('snorlax', 'Snorlax', ['Normal'], { hp: 1000, attack: 200, defense: 200, spAtk: 150, spDef: 250, speed: 100 });
+  const icicleSpear = enrichMoveWithMechanics({ id: 'icicle_spear', name: 'Icicle Spear', type: 'Ice', category: 'Physical', power: 25, accuracy: 100, pp: 30, maxPp: 30, description: '' });
 
+  const state = initializeBattle([cloyster], [snorlax]);
+  state.playerTeam[0].moves = [icicleSpear];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
 
+  const afterTurn = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.1 });
+  assert.ok(afterTurn.combatLog.some((cl) => cl.message.includes('Hit 5 time(s)!')), 'Skill Link Cloyster hits exactly 5 times with Icicle Spear');
+});
+
+test('Move Mechanics: Brick Break shatters opponent Reflect and Light Screen', () => {
+  const lucario = createTestMon('lucario', 'Lucario', ['Fighting', 'Steel'], { hp: 300, attack: 300, defense: 200, spAtk: 300, spDef: 200, speed: 250 });
+  const defender = createTestMon('def', 'Chansey', ['Normal'], { hp: 600, attack: 50, defense: 50, spAtk: 100, spDef: 300, speed: 100 });
+  const brickBreak = enrichMoveWithMechanics({ id: 'brick_break', name: 'Brick Break', type: 'Fighting', category: 'Physical', power: 75, accuracy: 100, pp: 15, maxPp: 15, description: '' });
+
+  const state = initializeBattle([lucario], [defender]);
+  state.opponentSideConditions = { reflectTurns: 5, lightScreenTurns: 5 };
+  state.playerTeam[0].moves = [brickBreak];
+  state.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  const afterBreak = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterBreak.opponentSideConditions?.reflectTurns, 0, 'Reflect shattered');
+  assert.equal(afterBreak.opponentSideConditions?.lightScreenTurns, 0, 'Light Screen shattered');
+  assert.ok(afterBreak.combatLog.some((cl) => cl.message.includes('shattered the foe\'s Reflect and Light Screen')));
+});
+
+test('Move Mechanics: High Jump Kick crashes for 50% max HP recoil on Protect or Miss', () => {
+  const hitmonlee = createTestMon('hitmonlee', 'Hitmonlee', ['Fighting'], { hp: 300, attack: 350, defense: 150, spAtk: 100, spDef: 250, speed: 250 });
+  const defender = createTestMon('def', 'Snorlax', ['Normal'], { hp: 600, attack: 200, defense: 200, spAtk: 150, spDef: 250, speed: 100 });
+  const hjk = enrichMoveWithMechanics({ id: 'high_jump_kick', name: 'High Jump Kick', type: 'Fighting', category: 'Physical', power: 130, accuracy: 90, pp: 10, maxPp: 10, description: '' });
+  const protect = { id: 'protect', name: 'Protect', type: 'Normal' as const, category: 'Status' as const, power: 0, accuracy: 100, pp: 10, maxPp: 10, priority: 4, description: '', isProtect: true };
+
+  // 1. Crash on Protect
+  const state = initializeBattle([hitmonlee], [defender]);
+  state.playerTeam[0].moves = [hjk];
+  state.opponentTeam[0].moves = [protect];
+
+  const afterProtectCrash = executeBattleTurn(state, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.5 });
+  assert.equal(afterProtectCrash.playerTeam[0].currentHp, 300 - 150, 'Attacker loses 50% max HP upon crashing into Protect');
+  assert.ok(afterProtectCrash.combatLog.some((cl) => cl.message.includes('kept going and crashed')));
+
+  // 2. Crash on Miss
+  const stateMiss = initializeBattle([hitmonlee], [defender]);
+  stateMiss.playerTeam[0].moves = [hjk];
+  stateMiss.opponentTeam[0].moves = [{ id: 'splash', name: 'Splash', type: 'Normal', category: 'Status', power: 0, accuracy: 100, pp: 40, maxPp: 40, description: '' }];
+
+  // Force miss with high rng roll > 90
+  const afterMissCrash = executeBattleTurn(stateMiss, { type: 'move', moveIndex: 0 }, { type: 'move', moveIndex: 0 }, { rng: () => 0.95 });
+  assert.equal(afterMissCrash.playerTeam[0].currentHp, 300 - 150, 'Attacker loses 50% max HP upon missing High Jump Kick');
+});
+
+test('Move Mechanics: Fixed Damage moves (Night Shade / Seismic Toss) deal exact flat HP with immunity checks', () => {
+  const gengar = createTestMon('gengar', 'Gengar', ['Ghost', 'Poison'], { hp: 300, attack: 150, defense: 150, spAtk: 350, spDef: 200, speed: 300 });
+  const snorlax = createTestMon('snorlax', 'Snorlax', ['Normal'], { hp: 500, attack: 200, defense: 200, spAtk: 150, spDef: 250, speed: 100 });
+  const alakazam = createTestMon('alakazam', 'Alakazam', ['Psychic'], { hp: 300, attack: 100, defense: 100, spAtk: 350, spDef: 250, speed: 300 });
+
+  const nightShade = enrichMoveWithMechanics({ id: 'night_shade', name: 'Night Shade', type: 'Ghost', category: 'Special', power: 0, accuracy: 100, pp: 15, maxPp: 15, description: '' });
+
+  // 1. Ghost vs Normal is Immune (0 damage)
+  const dmgImmune = calculateDamage(gengar, snorlax, nightShade, { rngVariance: 1.0 });
+  assert.equal(dmgImmune.damage, 0);
+  assert.equal(dmgImmune.effectiveness, 0);
+
+  // 2. Ghost vs Psychic deals flat 100 HP
+  const dmgNeutral = calculateDamage(gengar, alakazam, nightShade, { rngVariance: 1.0 });
+  assert.equal(dmgNeutral.damage, 100, 'Night Shade deals exact flat 100 HP damage');
+});
+
+test('Move Mechanics: Storm Throw always lands a guaranteed critical hit', () => {
+  const throh = createTestMon('throh', 'Throh', ['Fighting'], { hp: 400, attack: 300, defense: 250, spAtk: 100, spDef: 250, speed: 150 });
+  const snorlax = createTestMon('snorlax', 'Snorlax', ['Normal'], { hp: 500, attack: 200, defense: 200, spAtk: 150, spDef: 250, speed: 100 });
+  const stormThrow = enrichMoveWithMechanics({ id: 'storm_throw', name: 'Storm Throw', type: 'Fighting', category: 'Physical', power: 60, accuracy: 100, pp: 10, maxPp: 10, description: '' });
+
+  const res = calculateDamage(throh, snorlax, stormThrow, { rngVariance: 1.0 });
+  assert.equal(res.isCrit, true, 'Storm Throw with critRatioBonus: 3 always crits');
+});
 

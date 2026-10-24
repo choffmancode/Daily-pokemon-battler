@@ -86,6 +86,9 @@ export interface Move {
   isTaunt?: boolean; // Prevents target from using status moves for 3 turns (Taunt)
   isPerishSong?: boolean; // All active Pokemon faint in 3 turns (Perish Song)
   isTrickRoom?: boolean; // Reverses speed brackets for 5 turns (Trick Room)
+  breaksScreens?: boolean; // Shatters opponent's Reflect and Light Screen before dealing damage (Brick Break)
+  isCrashOnMiss?: boolean; // Attacker takes 50% max HP crash damage if move misses or target protects (High Jump Kick, Jump Kick)
+  fixedDamage?: number; // Deals flat fixed damage regardless of stats (Night Shade, Seismic Toss)
 }
 
 export interface PokemonStats {

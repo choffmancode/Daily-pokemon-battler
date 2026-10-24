@@ -16,6 +16,7 @@ interface TeamSelectorModalProps {
   onSelectTeam: (team: TeamPreset) => void;
   onStartBattleWithTeam?: (team: TeamPreset, customRoster: Pokemon[]) => void;
   initialStep?: 'teams' | 'lead';
+  teams?: TeamPreset[];
 }
 
 interface ArchetypeMeta {
@@ -277,28 +278,30 @@ export const TeamSelectorModal: React.FC<TeamSelectorModalProps> = ({
   onSelectTeam,
   onStartBattleWithTeam,
   initialStep = 'teams',
+  teams,
 }) => {
+  const availableTeams = teams && teams.length > 0 ? teams : BEGINNER_TEAMS;
   const [step, setStep] = useState<'teams' | 'lead'>(initialStep);
   const [activeTeam, setActiveTeam] = useState<TeamPreset>(
-    () => BEGINNER_TEAMS.find((t) => t.id === selectedTeamId) || BEGINNER_TEAMS[0]
+    () => availableTeams.find((t) => t.id === selectedTeamId) || availableTeams[0]
   );
   const [rosterOrder, setRosterOrder] = useState<Pokemon[]>(() => [...activeTeam.team]);
 
   useEffect(() => {
     if (isOpen) {
-      const found = BEGINNER_TEAMS.find((t) => t.id === selectedTeamId) || BEGINNER_TEAMS[0];
+      const found = availableTeams.find((t) => t.id === selectedTeamId) || availableTeams[0];
       setActiveTeam(found);
       setRosterOrder([...found.team]);
       setStep(initialStep);
     }
     // Only initialize step when modal opens or initialStep prop changes, not when selectedTeamId updates mid-flow
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialStep]);
+  }, [isOpen, initialStep, availableTeams]);
 
   if (!isOpen) return null;
 
   // Strictly display 3 core teams to match Reference 2 with zero vertical scroll
-  const displayedTeams = BEGINNER_TEAMS.slice(0, 3);
+  const displayedTeams = availableTeams.slice(0, 3);
 
   const handleChooseTeamCard = (team: TeamPreset) => {
     soundFX.playSelect();

@@ -286,7 +286,7 @@ export function calculateDamage(
   move: Move,
   options?: DamageCalculationOptions
 ): { damage: number; isCrit: boolean; effectiveness: number } {
-  if (move.category === 'Status' || move.power === 0) {
+  if (move.category === 'Status' || (move.power === 0 && !move.fixedDamage)) {
     return { damage: 0, isCrit: false, effectiveness: 1 };
   }
 
@@ -306,8 +306,21 @@ export function calculateDamage(
     return { damage: 0, isCrit: false, effectiveness: 0 };
   }
 
+  if (move.fixedDamage) {
+    return { damage: move.fixedDamage, isCrit: false, effectiveness };
+  }
+
   const weather: WeatherType = options?.weather ?? (options?.isHail ? 'Hail' : 'Clear');
-  const isCrit = options?.forceCrit ?? Math.random() < 0.0625;
+  let critChance = 0.0625;
+  const critBonus = (move.critRatioBonus || 0) + (attacker.heldItem?.toLowerCase().includes('scope lens') ? 1 : 0);
+  if (critBonus >= 3) {
+    critChance = 1.0;
+  } else if (critBonus === 2) {
+    critChance = 0.25;
+  } else if (critBonus === 1) {
+    critChance = 0.125;
+  }
+  const isCrit = options?.forceCrit ?? Math.random() < critChance;
   const variance = options?.rngVariance ?? 0.85 + Math.random() * 0.15;
 
   const atkStage = attacker.statStages
@@ -1279,6 +1292,19 @@ export function executeBattleTurn(
     if (!isSelfMove && defender.isProtected) {
       log('system', `${defender.species} protected itself!`, 'status');
       nextState.protocolLog!.push(`|-activate|${targetSlot}: ${defender.species}|move: Protect`);
+      if (move.isCrashOnMiss || move.id === 'high_jump_kick' || move.id === 'jump_kick') {
+        if (attacker.ability !== 'Magic Guard') {
+          const crashDmg = Math.max(1, Math.floor(attacker.maxHp * 0.5));
+          attacker.currentHp = Math.max(0, attacker.currentHp - crashDmg);
+          log(p.side, `${attacker.species} kept going and crashed! (-${crashDmg} HP)`, 'damage');
+          nextState.protocolLog!.push(`|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] crash`);
+          if (attacker.currentHp <= 0) {
+            attacker.fainted = true;
+            log(p.side, `${attacker.species} fainted!`, 'faint');
+            nextState.protocolLog!.push(`|-faint|${actorSlot}: ${attacker.species}`);
+          }
+        }
+      }
       continue;
     }
 
@@ -1290,6 +1316,19 @@ export function executeBattleTurn(
       if (hitRoll > move.accuracy) {
         log('system', `${attacker.species}'s attack missed!`);
         nextState.protocolLog!.push(`|-miss|${actorSlot}: ${attacker.species}|${targetSlot}: ${defender.species}`);
+        if (move.isCrashOnMiss || move.id === 'high_jump_kick' || move.id === 'jump_kick') {
+          if (attacker.ability !== 'Magic Guard') {
+            const crashDmg = Math.max(1, Math.floor(attacker.maxHp * 0.5));
+            attacker.currentHp = Math.max(0, attacker.currentHp - crashDmg);
+            log(p.side, `${attacker.species} kept going and crashed! (-${crashDmg} HP)`, 'damage');
+            nextState.protocolLog!.push(`|-damage|${actorSlot}: ${attacker.species}|${attacker.currentHp}/${attacker.maxHp}|[from] crash`);
+            if (attacker.currentHp <= 0) {
+              attacker.fainted = true;
+              log(p.side, `${attacker.species} fainted!`, 'faint');
+              nextState.protocolLog!.push(`|-faint|${actorSlot}: ${attacker.species}`);
+            }
+          }
+        }
         continue;
       }
     }
@@ -1455,11 +1494,33 @@ export function executeBattleTurn(
       continue;
     }
 
+    // Screen Shattering (Brick Break)
+    if (move.breaksScreens || move.id === 'brick_break') {
+      const defSideCond = isPlayer ? nextState.opponentSideConditions : nextState.playerSideConditions;
+      if (defSideCond && (defSideCond.reflectTurns || defSideCond.lightScreenTurns)) {
+        const broken: string[] = [];
+        if (defSideCond.reflectTurns) {
+          defSideCond.reflectTurns = 0;
+          broken.push('Reflect');
+        }
+        if (defSideCond.lightScreenTurns) {
+          defSideCond.lightScreenTurns = 0;
+          broken.push('Light Screen');
+        }
+        log(p.side, `${attacker.species}'s ${move.name} shattered the foe's ${broken.join(' and ')}!`, 'effectiveness');
+        nextState.protocolLog!.push(`|-sideend|${targetSlot.startsWith('p1') ? 'p1' : 'p2'}|Reflect`);
+        nextState.protocolLog!.push(`|-sideend|${targetSlot.startsWith('p1') ? 'p1' : 'p2'}|LightScreen`);
+      }
+    }
+
     // Damaging Move Execution (supports single-hit and multi-hit moves + Substitute absorption)
     const minHits = move.multiHit ? move.multiHit[0] : 1;
     const maxHits = move.multiHit ? move.multiHit[1] : 1;
+    const hasSkillLink = attacker.ability?.toLowerCase() === 'skill link';
     const hitCount =
-      minHits === maxHits
+      hasSkillLink && move.multiHit
+        ? maxHits
+        : minHits === maxHits
         ? minHits
         : minHits + Math.floor(rng() * (maxHits - minHits + 1));
 

@@ -48,6 +48,9 @@ export interface MoveMechanicsEntry {
   isTaunt?: boolean;
   isPerishSong?: boolean;
   isTrickRoom?: boolean;
+  breaksScreens?: boolean;
+  isCrashOnMiss?: boolean;
+  fixedDamage?: number;
 }
 
 const ALL_COMBAT_STATS_BOOST_1: StatChangeSpec[] = [
@@ -1235,36 +1238,10 @@ export const MOVE_MECHANICS_KB: Record<string, MoveMechanicsEntry> = {
       { stat: 'spAtk', stages: 1, target: 'self' },
     ],
   },
-  shell_smash: {
-    id: 'shell_smash',
-    name: 'Shell Smash',
-    statChanges: [
-      { stat: 'attack', stages: 2, target: 'self' },
-      { stat: 'spAtk', stages: 2, target: 'self' },
-      { stat: 'speed', stages: 2, target: 'self' },
-      { stat: 'defense', stages: -1, target: 'self' },
-      { stat: 'spDef', stages: -1, target: 'self' },
-    ],
-  },
-  quiver_dance: {
-    id: 'quiver_dance',
-    name: 'Quiver Dance',
-    statChanges: [
-      { stat: 'spAtk', stages: 1, target: 'self' },
-      { stat: 'spDef', stages: 1, target: 'self' },
-      { stat: 'speed', stages: 1, target: 'self' },
-    ],
-  },
   haze: {
     id: 'haze',
     name: 'Haze',
     isHaze: true,
-  },
-  defog: {
-    id: 'defog',
-    name: 'Defog',
-    clearsHazards: true,
-    statChange: { stat: 'evasion', stages: -1, target: 'opponent' },
   },
   reflect: {
     id: 'reflect',
@@ -1444,6 +1421,147 @@ export const MOVE_MECHANICS_KB: Record<string, MoveMechanicsEntry> = {
     name: 'Soft-Boiled',
     healFraction: 0.5,
   },
+  icicle_spear: {
+    id: 'icicle_spear',
+    name: 'Icicle Spear',
+    multiHit: [2, 5],
+  },
+  rock_blast: {
+    id: 'rock_blast',
+    name: 'Rock Blast',
+    multiHit: [2, 5],
+  },
+  bullet_seed: {
+    id: 'bullet_seed',
+    name: 'Bullet Seed',
+    multiHit: [2, 5],
+  },
+  pin_missile: {
+    id: 'pin_missile',
+    name: 'Pin Missile',
+    multiHit: [2, 5],
+  },
+  triple_kick: {
+    id: 'triple_kick',
+    name: 'Triple Kick',
+    multiHit: [1, 3],
+  },
+  high_jump_kick: {
+    id: 'high_jump_kick',
+    name: 'High Jump Kick',
+    isCrashOnMiss: true,
+  },
+  jump_kick: {
+    id: 'jump_kick',
+    name: 'Jump Kick',
+    isCrashOnMiss: true,
+  },
+  fake_out: {
+    id: 'fake_out',
+    name: 'Fake Out',
+    priority: 3,
+    secondaryEffect: { chance: 100, flinchChance: 100 },
+  },
+  blaze_kick: {
+    id: 'blaze_kick',
+    name: 'Blaze Kick',
+    critRatioBonus: 1,
+    secondaryEffect: { chance: 10, statusEffect: 'burn' },
+  },
+  gyro_ball: {
+    id: 'gyro_ball',
+    name: 'Gyro Ball',
+  },
+  destiny_bond: {
+    id: 'destiny_bond',
+    name: 'Destiny Bond',
+    priority: 0,
+  },
+  cross_poison: {
+    id: 'cross_poison',
+    name: 'Cross Poison',
+    critRatioBonus: 1,
+    secondaryEffect: { chance: 10, statusEffect: 'poison' },
+  },
+  curse: {
+    id: 'curse',
+    name: 'Curse',
+    statChanges: [
+      { stat: 'speed', stages: -1, target: 'self' },
+      { stat: 'attack', stages: 1, target: 'self' },
+      { stat: 'defense', stages: 1, target: 'self' },
+    ],
+  },
+  wish: {
+    id: 'wish',
+    name: 'Wish',
+    healFraction: 0.5,
+  },
+  seed_bomb: {
+    id: 'seed_bomb',
+    name: 'Seed Bomb',
+  },
+  crabhammer: {
+    id: 'crabhammer',
+    name: 'Crabhammer',
+    critRatioBonus: 1,
+  },
+  night_shade: {
+    id: 'night_shade',
+    name: 'Night Shade',
+    fixedDamage: 100,
+  },
+  seismic_toss: {
+    id: 'seismic_toss',
+    name: 'Seismic Toss',
+    fixedDamage: 100,
+  },
+  brick_break: {
+    id: 'brick_break',
+    name: 'Brick Break',
+    breaksScreens: true,
+  },
+  bug_bite: {
+    id: 'bug_bite',
+    name: 'Bug Bite',
+  },
+  attack_order: {
+    id: 'attack_order',
+    name: 'Attack Order',
+    critRatioBonus: 1,
+  },
+  defend_order: {
+    id: 'defend_order',
+    name: 'Defend Order',
+    statChanges: [
+      { stat: 'defense', stages: 1, target: 'self' },
+      { stat: 'spDef', stages: 1, target: 'self' },
+    ],
+  },
+  psycho_cut: {
+    id: 'psycho_cut',
+    name: 'Psycho Cut',
+    critRatioBonus: 1,
+  },
+  encore: {
+    id: 'encore',
+    name: 'Encore',
+  },
+  storm_throw: {
+    id: 'storm_throw',
+    name: 'Storm Throw',
+    critRatioBonus: 3,
+  },
+  frost_breath: {
+    id: 'frost_breath',
+    name: 'Frost Breath',
+    critRatioBonus: 3,
+  },
+  lovely_kiss: {
+    id: 'lovely_kiss',
+    name: 'Lovely Kiss',
+    statusEffect: 'sleep',
+  },
 };
 
 export function normalizeMoveKey(idOrName: string): string {
@@ -1528,5 +1646,8 @@ export function enrichMoveWithMechanics(move: Move): Move {
     isTaunt: move.isTaunt ?? spec.isTaunt,
     isPerishSong: move.isPerishSong ?? spec.isPerishSong,
     isTrickRoom: move.isTrickRoom ?? spec.isTrickRoom,
+    breaksScreens: move.breaksScreens ?? spec.breaksScreens,
+    isCrashOnMiss: move.isCrashOnMiss ?? spec.isCrashOnMiss,
+    fixedDamage: move.fixedDamage ?? spec.fixedDamage,
   };
 }
