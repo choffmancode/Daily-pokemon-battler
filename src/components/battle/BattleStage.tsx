@@ -29,6 +29,8 @@ interface BattleStageProps {
   isScreenFlareActive?: boolean;
   onOpenWardrobe?: () => void;
   backgroundUrl?: string;
+  opponentSpriteUrl?: string;
+  opponentName?: string;
 }
 
 /**
@@ -78,6 +80,8 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
   opponentAnimClass = '',
   isScreenFlareActive = false,
   backgroundUrl,
+  opponentSpriteUrl,
+  opponentName,
 }) => {
   // Proactive background preloading of all 12 combatants' front and back sprites
   React.useEffect(() => {
@@ -191,9 +195,14 @@ const BattleStageComponent: React.FC<BattleStageProps> = ({
           </div>
         </div>
 
-        {/* Champion Sprite Standing on Right Edge of Opponent Pedestal */}
+        {/* Champion/Trainer Sprite Standing on Right Edge of Opponent Pedestal */}
         <div className="relative z-10 mb-1 ml-0.5 shrink-0">
-          <TrainerBattleSprite isOpponent={true} size="md" />
+          <TrainerBattleSprite
+            isOpponent={true}
+            opponentSpriteUrl={opponentSpriteUrl}
+            opponentName={opponentName}
+            size="md"
+          />
         </div>
       </div>
 

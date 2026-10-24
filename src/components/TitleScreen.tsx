@@ -13,6 +13,7 @@ import { getDailyPackCooldown } from '../game/gachaEngine';
 
 interface TitleScreenProps {
   onStartBattle: () => void;
+  onStartGauntlet?: () => void;
   onOpenGacha: () => void;
   onOpenWardrobe: () => void;
   onOpenTeamSelect: (initialStep?: 'teams' | 'lead') => void;
@@ -26,6 +27,8 @@ interface TitleScreenProps {
 }
 
 export const TitleScreen: React.FC<TitleScreenProps> = ({
+  onStartBattle,
+  onStartGauntlet,
   onOpenGacha,
   onOpenWardrobe,
   onOpenTeamSelect,
@@ -197,13 +200,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             type="button"
             onClick={() => {
               soundFX.playSelect();
-              if (onOpenStudio) {
+              if (onStartGauntlet) {
+                onStartGauntlet();
+              } else if (onOpenStudio) {
                 onOpenStudio('bracket');
               } else {
                 onOpenTeamSelect('lead');
               }
             }}
-            title="Inspect Gauntlet Run 5-Stage Bracket & Ladder"
+            title="Embark on the 5-Stage Indigo Plateau Gauntlet Run"
             aria-label="Gauntlet Run"
             className="absolute top-[76.8%] left-[14%] w-[72%] h-[8.5%] rounded-[8px] cursor-pointer active:scale-[0.98] active:opacity-85 focus:outline-none"
           />

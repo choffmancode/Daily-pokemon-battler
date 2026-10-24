@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/game/battleEngine.test.ts src/game/showdown/showdownProtocol.test.ts src/game/statCalculator.test.ts src/game/advancedAI.test.ts"
+    "test": "tsx --test src/game/battleEngine.test.ts src/game/showdown/showdownProtocol.test.ts src/game/statCalculator.test.ts src/game/advancedAI.test.ts src/game/championRotationMatrix.test.ts src/game/regionalLeagues.test.ts src/game/gauntletLadder.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

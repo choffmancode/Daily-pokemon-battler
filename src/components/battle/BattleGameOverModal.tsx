@@ -18,6 +18,12 @@ interface BattleGameOverModalProps {
   onChangeTeam?: () => void;
   onExitToTitle: () => void;
   turnNumber?: number;
+  isGauntlet?: boolean;
+  gauntletStageNumber?: number;
+  totalGauntletStages?: number;
+  gauntletOpponentName?: string;
+  gauntletOpponentSprite?: string;
+  onAdvanceGauntletStage?: () => void;
 }
 
 /**
@@ -186,6 +192,12 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
   onChangeTeam,
   onExitToTitle,
   turnNumber = 8,
+  isGauntlet = false,
+  gauntletStageNumber = 1,
+  totalGauntletStages = 5,
+  gauntletOpponentName,
+  gauntletOpponentSprite,
+  onAdvanceGauntletStage,
 }) => {
   if (!winner) return null;
 
@@ -272,7 +284,15 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
                   '2px 2px 0 #081820, -2px -2px 0 #081820, 2px -2px 0 #081820, -2px 2px 0 #081820, 0 2px 0 #081820, 0 -2px 0 #081820',
               }}
             >
-              {isVictory ? 'CHAMPION DEFEATED' : 'CHALLENGE FAILED'}
+              {isVictory
+                ? isGauntlet
+                  ? gauntletStageNumber === totalGauntletStages
+                    ? 'KANTO CHAMPION DEFEATED'
+                    : `STAGE ${gauntletStageNumber} CLEARED`
+                  : 'CHAMPION DEFEATED'
+                : isGauntlet
+                  ? 'GAUNTLET ELIMINATED'
+                  : 'CHALLENGE FAILED'}
             </h1>
             <span className="font-pixel text-[9px] text-[#e0f8d0]">◇</span>
           </div>
@@ -282,11 +302,11 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
             2. CHAMPION DIALOGUE CARD + HANKO STAMP ([勝] / [敗])
            =================================================================== */}
         <div className="w-full bg-[#305840] border-[3px] border-[#b8d898] shadow-[0_0_0_3px_#081820] rounded-[3px] p-1.5 grid grid-cols-12 gap-1.5 items-stretch shrink-0">
-          {/* Left: Framed Square Champion Portrait (Authentic Cynthia Shoulder Pose) */}
+          {/* Left: Framed Square Champion/Trainer Portrait */}
           <div className="col-span-4 bg-[#183828] border-2 border-[#081820] overflow-hidden flex items-center justify-center h-[84px] sm:h-[90px] p-0.5">
             <img
-              src="/sprites/trainers/cynthia_portrait_bust.png"
-              alt="Champion Cynthia Portrait"
+              src={gauntletOpponentSprite || "/sprites/trainers/cynthia_portrait_bust.png"}
+              alt={`${gauntletOpponentName || 'Champion'} Portrait`}
               className="w-full h-full object-contain object-top pixelated select-none"
               loading="eager"
             />
@@ -295,12 +315,18 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
           {/* Right: Cream Dialogue Speech Box + Hanko Seal */}
           <div className="col-span-8 bg-[#e8f4c8] border-2 border-[#081820] px-3 pt-2.5 pb-1.5 flex flex-col justify-between relative">
             <p
-              className="text-[12.5px] xs:text-[13.5px] font-bold text-[#102018] leading-[1.24] pr-7"
+              className="text-[12px] xs:text-[13px] font-bold text-[#102018] leading-[1.24] pr-7"
               style={{ fontFamily: "'Silkscreen', monospace" }}
             >
               {isVictory
-                ? 'Magnificent strategy. You’ve conquered today’s challenge!'
-                : 'A valiant effort... Study my lineup and return stronger tomorrow!'}
+                ? isGauntlet
+                  ? gauntletStageNumber === totalGauntletStages
+                    ? 'Incredible! You defeated Champion Blue and conquered the Indigo Plateau! You are the new Kanto Champion!'
+                    : `${gauntletOpponentName || 'Trainer'} was defeated! Your team has been fully healed. Ready for Stage ${gauntletStageNumber + 1}?`
+                  : 'Magnificent strategy. You’ve conquered today’s challenge!'
+                : isGauntlet
+                  ? `Eliminated at Stage ${gauntletStageNumber} of ${totalGauntletStages}. Regroup and challenge the Gauntlet again!`
+                  : 'A valiant effort... Study my lineup and return stronger tomorrow!'}
             </p>
 
             <div className="absolute bottom-1.5 right-2">
@@ -485,35 +511,54 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
         <div className="w-full flex flex-col gap-1.5 shrink-0">
           {isVictory ? (
             <>
-              <button
-                type="button"
-                onClick={() => {
-                  soundFX.playSelect();
-                  haptics.tap();
-                  onOpenGachaModal();
-                }}
-                className="w-full gba-btn py-2.5 px-4 flex items-center justify-center gap-2.5 shadow-[0_0_10px_rgba(136,192,112,0.45)] cursor-pointer"
-              >
-                <PixelChestIcon />
-                <span className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
-                  OPEN REWARD PACKS
-                </span>
-              </button>
+              {isGauntlet && gauntletStageNumber < totalGauntletStages && onAdvanceGauntletStage ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playSelect();
+                    haptics.tap();
+                    onAdvanceGauntletStage();
+                  }}
+                  className="w-full gba-btn py-3 px-4 flex items-center justify-center gap-2.5 shadow-[0_0_14px_rgba(136,192,112,0.7)] cursor-pointer border-[#88c070] bg-[#306850] active:scale-[0.98]"
+                >
+                  <PixelSwordsIcon />
+                  <span className="gba-title-text text-[13px] xs:text-[14px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
+                    NEXT OPPONENT (STAGE {gauntletStageNumber + 1} OF {totalGauntletStages})
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playSelect();
+                    haptics.tap();
+                    onOpenGachaModal();
+                  }}
+                  className="w-full gba-btn py-2.5 px-4 flex items-center justify-center gap-2.5 shadow-[0_0_10px_rgba(136,192,112,0.45)] cursor-pointer"
+                >
+                  <PixelChestIcon />
+                  <span className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
+                    {isGauntlet ? 'CLAIM CHAMPION REWARDS' : 'OPEN REWARD PACKS'}
+                  </span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  soundFX.playSelect();
-                  haptics.tap();
-                  onRestartBattle();
-                }}
-                className="w-full gba-btn py-2.5 px-4 flex items-center justify-center gap-2.5 cursor-pointer"
-              >
-                <PixelSwordsIcon />
-                <span className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
-                  REMATCH CHAMPION
-                </span>
-              </button>
+              {(!isGauntlet || gauntletStageNumber === totalGauntletStages) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playSelect();
+                    haptics.tap();
+                    onRestartBattle();
+                  }}
+                  className="w-full gba-btn py-2.5 px-4 flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <PixelSwordsIcon />
+                  <span className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
+                    {isGauntlet ? 'RESTART GAUNTLET' : 'REMATCH CHAMPION'}
+                  </span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -544,7 +589,7 @@ export const BattleGameOverModal: React.FC<BattleGameOverModalProps> = ({
               >
                 <PixelSwordsIcon />
                 <span className="gba-title-text text-[12.5px] xs:text-[13.5px] font-bold text-[#e0f8d0] tracking-wider whitespace-nowrap">
-                  REMATCH CHAMPION
+                  {isGauntlet ? 'RETRY GAUNTLET RUN' : 'REMATCH CHAMPION'}
                 </span>
               </button>
 

@@ -10,6 +10,8 @@ import { getTrainerBase, MiniTrainerSVG } from '../../game/data/trainerRegistry'
 
 interface TrainerBattleSpriteProps {
   isOpponent?: boolean;
+  opponentSpriteUrl?: string;
+  opponentName?: string;
   inventory?: UserCosmeticInventory;
   previewTrainer?: EquippedTrainerConfig;
   isCommanding?: boolean;
@@ -26,6 +28,8 @@ interface TrainerBattleSpriteProps {
  */
 const TrainerBattleSpriteComponent: React.FC<TrainerBattleSpriteProps> = ({
   isOpponent = false,
+  opponentSpriteUrl,
+  opponentName,
   inventory,
   previewTrainer,
   isCommanding = false,
@@ -45,16 +49,18 @@ const TrainerBattleSpriteComponent: React.FC<TrainerBattleSpriteProps> = ({
   }[size];
 
 
-  // If Opponent: Render Champion Cynthia in the Battle Screen with authentic DPP battle sprite
+  // If Opponent: Render Opponent Trainer (e.g. Lorelei, Bruno, Agatha, Lance, Blue, or Cynthia)
   if (isOpponent) {
+    const oppName = opponentName || 'Champion Cynthia';
+    const oppSrc = opponentSpriteUrl || '/sprites/trainers/cynthia_battle.png';
     return (
       <div
         className={`relative flex flex-col items-center select-none ${className}`}
-        title="Champion Cynthia"
+        title={oppName}
       >
         <img
-          src="/sprites/trainers/cynthia_battle.png"
-          alt="Champion Cynthia"
+          src={oppSrc}
+          alt={oppName}
           className="h-20 xs:h-22 sm:h-24 w-auto object-contain pixelated drop-shadow-[1px_2px_0_#081820] select-none"
         />
       </div>

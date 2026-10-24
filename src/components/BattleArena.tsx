@@ -30,6 +30,12 @@ interface BattleArenaProps {
   onOpenWardrobeModal?: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  isGauntlet?: boolean;
+  gauntletStageNumber?: number;
+  totalGauntletStages?: number;
+  opponentName?: string;
+  opponentSpriteUrl?: string;
+  onAdvanceGauntletStage?: () => void;
 }
 
 /**
@@ -109,6 +115,12 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
   onOpenWardrobeModal,
   isMuted,
   onToggleMute,
+  isGauntlet = false,
+  gauntletStageNumber = 1,
+  totalGauntletStages = 5,
+  opponentName,
+  opponentSpriteUrl,
+  onAdvanceGauntletStage,
 }) => {
   // Default open so the 3-line Action Log Plate is visible just below the header (per v4 Mockup)
   const [isActionLogOpen, setIsActionLogOpen] = useState<boolean>(true);
@@ -361,6 +373,8 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             isScreenFlareActive={isScreenFlareActive}
             onOpenWardrobe={onOpenWardrobeModal}
             backgroundUrl={activeBackground.imageUrl}
+            opponentSpriteUrl={opponentSpriteUrl}
+            opponentName={opponentName}
           />
         </div>
 
@@ -554,6 +568,12 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             onChangeTeam={onChangeTeam}
             onExitToTitle={onExitToTitle}
             onOpenGachaModal={onOpenGachaModal}
+            isGauntlet={isGauntlet}
+            gauntletStageNumber={gauntletStageNumber}
+            totalGauntletStages={totalGauntletStages}
+            gauntletOpponentName={opponentName}
+            gauntletOpponentSprite={opponentSpriteUrl}
+            onAdvanceGauntletStage={onAdvanceGauntletStage}
           />
         )}
       </div>

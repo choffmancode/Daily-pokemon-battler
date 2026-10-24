@@ -8,10 +8,17 @@ import { TitleScreen } from './components/TitleScreen';
 import { BattleArena } from './components/BattleArena';
 import { BattleState, Pokemon, TeamPreset, UserCosmeticInventory } from './game/types';
 import { BEGINNER_TEAMS } from './game/constants';
-import { initializeBattle } from './game/battleEngine';
+import { initializeBattle, clonePokemon } from './game/battleEngine';
 import { loadUserInventory, saveUserInventory } from './game/gachaEngine';
 import { soundFX } from './components/AudioEngine';
 import { useMobileViewport } from './hooks/useMobileViewport';
+import { OpponentPreviewInfo } from './components/BattlePreviewModal';
+import {
+  KANTO_GAUNTLET_STAGES,
+  getGauntletStage,
+  DAILY_CYNTHIA_PREVIEW,
+} from './game/data/gauntletLadder';
+import { CHAMPION_CYNTHIA_TEAM } from './game/data/teams';
 
 // Code-split heavy modals to minimize initial mobile bundle size
 const GachaPackModal = lazy(() =>
@@ -47,6 +54,15 @@ export default function App() {
   const [studioInitialTab, setStudioInitialTab] = useState<'bracket' | 'champions' | 'regional' | 'victory'>('bracket');
   const [teamSelectInitialStep, setTeamSelectInitialStep] = useState<'teams' | 'lead'>('teams');
   const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
+
+  // Gauntlet & Battle Preview State Machine
+  const [isGauntletActive, setIsGauntletActive] = useState<boolean>(false);
+  const [gauntletStageIndex, setGauntletStageIndex] = useState<number>(0);
+  const [activePlayerRoster, setActivePlayerRoster] = useState<Pokemon[]>(() => BEGINNER_TEAMS[0].team);
+  const [previewOpponent, setPreviewOpponent] = useState<OpponentPreviewInfo>(KANTO_GAUNTLET_STAGES[0].preview);
+  const [previewMode, setPreviewMode] = useState<'gauntlet' | 'daily'>('gauntlet');
+  const [previewStageNumber, setPreviewStageNumber] = useState<number>(1);
+  const [previewIsHealed, setPreviewIsHealed] = useState<boolean>(true);
 
   // Sync state machine to document.body.dataset.state
   useEffect(() => {
@@ -99,17 +115,21 @@ export default function App() {
       setBattleState(state);
       setGameState('playing');
     } else if (params.get('autostart') === '1') {
-      startNewBattle();
+      startNewBattleWithOpponent(selectedTeam.team);
     } else if (preview === 'studio' || preview === 'bracket' || preview === 'champions' || preview === 'regional' || preview === 'victory') {
       setStudioInitialTab(preview === 'studio' ? 'bracket' : (preview as any));
       setIsStudioModalOpen(true);
     } else if (preview === 'battle_preview' || preview === 'preview') {
+      setPreviewOpponent(getGauntletStage(1).preview);
+      setPreviewMode('gauntlet');
+      setPreviewStageNumber(2);
+      setPreviewIsHealed(true);
       setIsBattlePreviewOpen(true);
     }
   }, []);
 
-  const startNewBattle = (customRoster?: Pokemon[]) => {
-    const freshState = initializeBattle(customRoster ?? selectedTeam.team);
+  const startNewBattleWithOpponent = (playerRoster: Pokemon[], opponentRoster?: Pokemon[]) => {
+    const freshState = initializeBattle(playerRoster, opponentRoster);
     setBattleState(freshState);
     setGameState('playing');
   };
@@ -126,28 +146,108 @@ export default function App() {
 
   const handleSelectTeam = (team: TeamPreset) => {
     setSelectedTeam(team);
+    setActivePlayerRoster(team.team);
     if (gameState === 'playing') {
-      setBattleState(initializeBattle(team.team));
+      const oppRoster = isGauntletActive
+        ? getGauntletStage(gauntletStageIndex).roster
+        : CHAMPION_CYNTHIA_TEAM;
+      setBattleState(initializeBattle(team.team, oppRoster));
     }
+  };
+
+  const handleStartGauntlet = () => {
+    setIsGauntletActive(true);
+    setGauntletStageIndex(0);
+    setTeamSelectInitialStep('teams');
+    setIsTeamSelectModalOpen(true);
+  };
+
+  const handleStartDailyBattle = () => {
+    setIsGauntletActive(false);
+    setGauntletStageIndex(0);
+    setTeamSelectInitialStep('teams');
+    setIsTeamSelectModalOpen(true);
   };
 
   const handleStartBattleWithTeam = (team: TeamPreset, customRoster: Pokemon[]) => {
     setSelectedTeam(team);
+    setActivePlayerRoster(customRoster);
     setIsTeamSelectModalOpen(false);
-    startNewBattle(customRoster);
+
+    if (isGauntletActive) {
+      setGauntletStageIndex(0);
+      const stage = getGauntletStage(0);
+      setPreviewOpponent(stage.preview);
+      setPreviewMode('gauntlet');
+      setPreviewStageNumber(1);
+      setPreviewIsHealed(true);
+      setIsBattlePreviewOpen(true);
+    } else {
+      setPreviewOpponent(DAILY_CYNTHIA_PREVIEW);
+      setPreviewMode('daily');
+      setPreviewStageNumber(1);
+      setPreviewIsHealed(true);
+      setIsBattlePreviewOpen(true);
+    }
+  };
+
+  const handleContinueFromPreview = () => {
+    setIsBattlePreviewOpen(false);
+    if (isGauntletActive) {
+      const stage = getGauntletStage(gauntletStageIndex);
+      startNewBattleWithOpponent(activePlayerRoster, stage.roster);
+    } else {
+      startNewBattleWithOpponent(activePlayerRoster, CHAMPION_CYNTHIA_TEAM);
+    }
+  };
+
+  const handleAdvanceGauntletStage = () => {
+    const nextIndex = gauntletStageIndex + 1;
+    setGauntletStageIndex(nextIndex);
+    const nextStage = getGauntletStage(nextIndex);
+
+    // Fully heal player roster (100% HP, status cleared, 100% PP)
+    const healedRoster = activePlayerRoster.map((p) => {
+      const copy = clonePokemon(p);
+      copy.currentHp = copy.maxHp;
+      copy.fainted = false;
+      copy.statusCondition = null;
+      copy.sleepTurns = 0;
+      copy.toxicCounter = 0;
+      copy.substituteHp = 0;
+      copy.isProtected = false;
+      copy.moves = copy.moves.map((m) => ({ ...m, pp: m.maxPp }));
+      return copy;
+    });
+    setActivePlayerRoster(healedRoster);
+
+    setPreviewOpponent(nextStage.preview);
+    setPreviewMode('gauntlet');
+    setPreviewStageNumber(nextIndex + 1);
+    setPreviewIsHealed(true);
+    setGameState('title');
+    setIsBattlePreviewOpen(true);
+  };
+
+  const handleRestartCurrentBattle = () => {
+    if (isGauntletActive) {
+      const stage = getGauntletStage(gauntletStageIndex);
+      startNewBattleWithOpponent(activePlayerRoster, stage.roster);
+    } else {
+      startNewBattleWithOpponent(activePlayerRoster, CHAMPION_CYNTHIA_TEAM);
+    }
   };
 
   return (
     <main className="w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] bg-[#081820] text-[#e0f8d0] font-pixel overflow-hidden overscroll-none touch-manipulation">
       {gameState === 'title' ? (
         <TitleScreen
-          onStartBattle={() => {
-            setTeamSelectInitialStep('teams');
-            setIsTeamSelectModalOpen(true);
-          }}
+          onStartBattle={handleStartDailyBattle}
+          onStartGauntlet={handleStartGauntlet}
           onOpenGacha={() => setIsGachaModalOpen(true)}
           onOpenWardrobe={() => setIsWardrobeModalOpen(true)}
           onOpenTeamSelect={(step = 'teams') => {
+            setIsGauntletActive(false);
             setTeamSelectInitialStep(step);
             setIsTeamSelectModalOpen(true);
           }}
@@ -166,8 +266,11 @@ export default function App() {
         <BattleArena
           battleState={battleState}
           onUpdateBattle={setBattleState}
-          onExitToTitle={() => setGameState('title')}
-          onRestartBattle={() => startNewBattle(selectedTeam.team)}
+          onExitToTitle={() => {
+            setIsGauntletActive(false);
+            setGameState('title');
+          }}
+          onRestartBattle={handleRestartCurrentBattle}
           onChangeTeam={() => {
             setTeamSelectInitialStep('teams');
             setIsTeamSelectModalOpen(true);
@@ -178,6 +281,20 @@ export default function App() {
           onOpenWardrobeModal={() => setIsWardrobeModalOpen(true)}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
+          isGauntlet={isGauntletActive}
+          gauntletStageNumber={gauntletStageIndex + 1}
+          totalGauntletStages={5}
+          opponentName={
+            isGauntletActive
+              ? getGauntletStage(gauntletStageIndex).preview.name
+              : 'CYNTHIA'
+          }
+          opponentSpriteUrl={
+            isGauntletActive
+              ? getGauntletStage(gauntletStageIndex).preview.spriteUrl
+              : '/sprites/trainers/cynthia_battle.png'
+          }
+          onAdvanceGauntletStage={handleAdvanceGauntletStage}
         />
       )}
 
@@ -225,29 +342,19 @@ export default function App() {
         {isBattlePreviewOpen && (
           <BattlePreviewModal
             isOpen={isBattlePreviewOpen}
-            onClose={() => setIsBattlePreviewOpen(false)}
-            onContinueToBattle={() => {
+            onClose={() => {
               setIsBattlePreviewOpen(false);
-              startNewBattle(selectedTeam.team);
+              if (gameState !== 'playing') {
+                setGameState('title');
+              }
             }}
-            mode="gauntlet"
-            stageNumber={2}
+            onContinueToBattle={handleContinueFromPreview}
+            mode={previewMode}
+            stageNumber={previewStageNumber}
             totalStages={5}
-            playerTeam={selectedTeam.team}
-            opponent={{
-              name: 'BRUNO',
-              title: 'ELITE FOUR #2',
-              headerTitle: 'ELITE FOUR BRUNO',
-              typeSpecialty: 'FIGHTING',
-              typeBg: '#902820',
-              quote: '"Through rigorous training, people and Pokémon become stronger! Feel our Fighting power!"',
-              leadPokemonName: 'Hitmontop',
-              leadPokemonDex: 237,
-              leadPokemonDetail: 'Fighting • Ability: Intimidate',
-              benchCount: 4,
-              spriteUrl: '/sprites/trainers/bruno_sprite.png',
-            }}
-            isHealed={true}
+            playerTeam={activePlayerRoster}
+            opponent={previewOpponent}
+            isHealed={previewIsHealed}
           />
         )}
       </Suspense>
