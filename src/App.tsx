@@ -23,6 +23,9 @@ const WardrobeModal = lazy(() =>
 const TeamSelectorModal = lazy(() =>
   import('./components/TeamSelectorModal').then((m) => ({ default: m.TeamSelectorModal }))
 );
+const UIPrototypeStudioModal = lazy(() =>
+  import('./components/UIPrototypeStudioModal').then((m) => ({ default: m.UIPrototypeStudioModal }))
+);
 
 export default function App() {
   useMobileViewport(); // Handles 100dvh shifts and first-touch audio unlock
@@ -36,6 +39,8 @@ export default function App() {
   const [isGachaModalOpen, setIsGachaModalOpen] = useState<boolean>(false);
   const [isWardrobeModalOpen, setIsWardrobeModalOpen] = useState<boolean>(false);
   const [isTeamSelectModalOpen, setIsTeamSelectModalOpen] = useState<boolean>(false);
+  const [isStudioModalOpen, setIsStudioModalOpen] = useState<boolean>(false);
+  const [studioInitialTab, setStudioInitialTab] = useState<'bracket' | 'champions' | 'regional' | 'victory'>('bracket');
   const [teamSelectInitialStep, setTeamSelectInitialStep] = useState<'teams' | 'lead'>('teams');
   const [isMuted, setIsMuted] = useState<boolean>(() => soundFX.getMuted());
 
@@ -91,6 +96,9 @@ export default function App() {
       setGameState('playing');
     } else if (params.get('autostart') === '1') {
       startNewBattle();
+    } else if (preview === 'studio' || preview === 'bracket' || preview === 'champions' || preview === 'regional' || preview === 'victory') {
+      setStudioInitialTab(preview === 'studio' ? 'bracket' : (preview as any));
+      setIsStudioModalOpen(true);
     }
   }, []);
 
@@ -136,6 +144,10 @@ export default function App() {
           onOpenTeamSelect={(step = 'teams') => {
             setTeamSelectInitialStep(step);
             setIsTeamSelectModalOpen(true);
+          }}
+          onOpenStudio={(tab = 'bracket') => {
+            setStudioInitialTab(tab);
+            setIsStudioModalOpen(true);
           }}
           selectedTeam={selectedTeam}
           inventory={inventory}
@@ -193,6 +205,14 @@ export default function App() {
             onSelectTeam={handleSelectTeam}
             onStartBattleWithTeam={handleStartBattleWithTeam}
             initialStep={teamSelectInitialStep}
+          />
+        )}
+
+        {isStudioModalOpen && (
+          <UIPrototypeStudioModal
+            isOpen={isStudioModalOpen}
+            onClose={() => setIsStudioModalOpen(false)}
+            initialTab={studioInitialTab}
           />
         )}
       </Suspense>

@@ -16,6 +16,7 @@ interface TitleScreenProps {
   onOpenGacha: () => void;
   onOpenWardrobe: () => void;
   onOpenTeamSelect: (initialStep?: 'teams' | 'lead') => void;
+  onOpenStudio?: (tab?: 'bracket' | 'champions' | 'regional' | 'victory') => void;
   selectedTeam: TeamPreset;
   inventory?: UserCosmeticInventory;
   availablePacks: number;
@@ -28,6 +29,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenGacha,
   onOpenWardrobe,
   onOpenTeamSelect,
+  onOpenStudio,
   availablePacks,
   lastDailyClaimTime,
   isMuted,
@@ -55,6 +57,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         e.preventDefault();
         soundFX.playSelect();
         onOpenTeamSelect('lead');
+      } else if (e.code === 'KeyS') {
+        e.preventDefault();
+        soundFX.playSelect();
+        onOpenStudio?.('bracket');
       } else if (e.code === 'KeyM') {
         e.preventDefault();
         onToggleMute();
@@ -87,6 +93,21 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           backgroundSize: '16px 16px, 100% 100%',
         }}
       />
+
+      {/* UI Prototype Studio Review Pill (Top Left) */}
+      {onOpenStudio && (
+        <button
+          onClick={() => {
+            soundFX.playSelect();
+            onOpenStudio('bracket');
+          }}
+          title="Open UI Prototype Studio [S]"
+          className="fixed top-2.5 left-2.5 z-40 px-2 py-1.5 bg-[#081820]/90 border-2 border-[#f0c830]/80 text-[#f0c830] font-pixel text-[8px] active:scale-95 rounded-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer flex items-center gap-1.5"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#f0c830] animate-pulse" />
+          <span>UI STUDIO</span>
+        </button>
+      )}
 
       {/* Unobtrusive Audio Mute Button Outside Console Frame */}
       <button
@@ -176,9 +197,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             type="button"
             onClick={() => {
               soundFX.playSelect();
-              onOpenTeamSelect('lead');
+              if (onOpenStudio) {
+                onOpenStudio('bracket');
+              } else {
+                onOpenTeamSelect('lead');
+              }
             }}
-            title="Start Gauntlet Run with Custom Lead Pokémon"
+            title="Inspect Gauntlet Run 5-Stage Bracket & Ladder"
             aria-label="Gauntlet Run"
             className="absolute top-[76.8%] left-[14%] w-[72%] h-[8.5%] rounded-[8px] cursor-pointer active:scale-[0.98] active:opacity-85 focus:outline-none"
           />
